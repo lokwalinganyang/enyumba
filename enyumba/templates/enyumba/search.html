@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}eNyumba – Find Houses{% endblock %}
+
+{% block content %}
+<pre>Sidebar ads: {{ sidebar_ads|length }}</pre>
+<div class="row">
+    <!-- Filter sidebar (left column) -->
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">Filter Properties</div>
+            <div class="card-body">
+                <form method="get" action="{% url 'enyumba:search' %}">
+                    <div class="mb-2">
+                        <label>House type</label>
+                        <select name="house_type" class="form-select">
+                            <option value="">All</option>
+                            {% for value, label in house_type_choices %}
+                                <option value="{{ value }}" {% if filters.house_type == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Min rent (KES)</label>
+                        <input type="number" name="min_price" class="form-control" value="{{ filters.min_price|default:'' }}">
+                    </div>
+                    <div class="mb-2">
+                        <label>Max rent (KES)</label>
+                        <input type="number" name="max_price" class="form-control" value="{{ filters.max_price|default:'' }}">
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="has_tiles" value="yes" {% if filters.has_tiles == 'yes' %}checked{% endif %}>
+                        <label class="form-check-label">Tiles</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="has_water" value="yes" {% if filters.has_water == 'yes' %}checked{% endif %}>
+                        <label class="form-check-label">Water</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="has_hot_shower" value="yes" {% if filters.has_hot_shower == 'yes' %}checked{% endif %}>
+                        <label class="form-check-label">Hot shower</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="has_internet" value="yes" {% if filters.has_internet == 'yes' %}checked{% endif %}>
+                        <label class="form-check-label">Internet</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="parking" value="yes" {% if filters.parking == 'yes' %}checked{% endif %}>
+                        <label class="form-check-label">Parking</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 mt-3">Search</button>
+                    <a href="{% url 'enyumba:search' %}" class="btn btn-outline-secondary w-100 mt-2">Clear filters</a>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sidebar Ads (if any) -->
+        {% if sidebar_ads %}
+        <div class="card mt-3">
+            <div class="card-header bg-secondary text-white">Sponsored</div>
+            <div class="card-body">
+                {% for ad in sidebar_ads %}
+                <div class="text-center mb-2">
+                    <a href="{% url 'enyumba:ad_click' ad.id %}" target="_blank" rel="nofollow">
+                        {% if ad.image %}<img src="{{ ad.image.url }}" class="img-fluid mb-1">{% endif %}
+                        <strong>{{ ad.title }}</strong>
+                        {% if ad.description %}<p class="small">{{ ad.description|truncatechars:60 }}</p>{% endif %}
+                    </a>
+                </div>
+                {% if not forloop.last %}<hr>{% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Property cards (right column) -->
+    <div class="col-md-9">
+        <h3>Available Houses ({{ properties|length }})</h3>
+        <div class="row">
+            {% for prop in properties %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    {% if prop.image1 %}
+                        <img src="{{ prop.image1.url }}" class="card-img-top" alt="{{ prop.title }}">
+                    {% else %}
+                        <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height:200px">No image</div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ prop.title|truncatechars:35 }}</h5>
+                        <p class="card-text"><strong>KES {{ prop.monthly_rent }}</strong> / month</p>
+                        <p><i class="bi bi-geo-alt"></i> {{ prop.location_neighbourhood }} {{ prop.location_landmark }}</p>
+                        <div>
+                            {% if prop.has_tiles %}<i class="bi bi-grid" title="Tiles"></i>{% endif %}
+                            {% if prop.has_water %}<i class="bi bi-droplet" title="Water"></i>{% endif %}
+                            {% if prop.has_hot_shower %}<i class="bi bi-thermometer-half" title="Hot shower"></i>{% endif %}
+                            {% if prop.has_internet %}<i class="bi bi-wifi" title="Internet"></i>{% endif %}
+                            {% if prop.parking_capacity > 0 %}<i class="bi bi-car-front" title="Parking"></i>{% endif %}
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <a href="{% url 'enyumba:property_detail' prop.id %}" class="btn btn-outline-primary mt-2 w-100">View Details</a>
+                            <a href="https://wa.me/?text=Check%20out%20{{ prop.title|urlencode }}%20-%20KES%20{{ prop.monthly_rent }}%20in%20{{ prop.location_neighbourhood|urlencode }}.%20{{ prop.share_url|urlencode }}"
+                               target="_blank"
+                               class="btn btn-outline-success mt-2 w-100">Share</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Between‑listings Ads (every 3 properties) -->
+            {% if forloop.counter|divisibleby:3 and not forloop.last %}
+                {% for ad in between_listings_ads %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 bg-light border-secondary">
+                        <div class="card-body text-center">
+                            <div class="small text-muted">📢 Advertisement</div>
+                            <a href="{% url 'enyumba:ad_click' ad.id %}" target="_blank" rel="nofollow">
+                                {% if ad.image %}<img src="{{ ad.image.url }}" class="img-fluid mb-2" style="max-height:100px">{% endif %}
+                                <strong>{{ ad.title }}</strong>
+                                <p class="small">{{ ad.description|truncatechars:80 }}</p>
+                                <span class="btn btn-sm btn-outline-primary">Learn more</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            {% empty %}
+                <div class="alert alert-info">No houses match your filters. Try adjusting them.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

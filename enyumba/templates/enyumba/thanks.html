@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<p>Your property is awaiting approval. Meanwhile, you can share this link on WhatsApp:</p>
+<input type="text" value="{{ share_url }}" class="form-control mb-2" readonly>
+<a href="https://wa.me/?text=Check%20out%20my%20property%3A%20{{ property.title|urlencode }}%20-{{ property.monthly_rent }}%20KES.%20{{ share_url|urlencode }}"
+   target="_blank"
+   class="btn btn-success">
+    <i class="bi bi-whatsapp"></i> Share on WhatsApp
+</a>
+{% endblock %}

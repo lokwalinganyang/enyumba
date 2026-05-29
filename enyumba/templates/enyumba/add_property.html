@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Add Property Details{% endblock %}
+{% block content %}
+<h2>Add Property Details</h2>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Submit for Approval</button>
+</form>
+{% endblock %}

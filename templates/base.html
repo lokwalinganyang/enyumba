@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}eNyumba{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        .feature-icon { font-size: 1.2rem; margin-right: 5px; }
+        .card-img-top { height: 200px; object-fit: cover; }
+        @media (max-width: 576px) {
+            .card-img-top { height: 150px; }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'enyumba:search' %}">🏡 eNyumba</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{% url 'enyumba:search' %}">Search</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'enyumba:landlord_start' %}">List Your Property</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <main class="container my-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-light text-center py-3 mt-5">
+        <small>© 2026 eNyumba – Find your home in Turkana</small>
+        <!-- Footer Ads (if any) -->
+        {% if footer_ads %}
+        <div class="container mt-3">
+            <div class="row justify-content-center">
+                {% for ad in footer_ads %}
+                <div class="col-md-3 col-6 mb-2">
+                    <a href="{% url 'enyumba:ad_click' ad.id %}" target="_blank" rel="nofollow">
+                        {% if ad.image %}
+                        <img src="{{ ad.image.url }}" class="img-fluid" alt="{{ ad.title }}">
+                        {% else %}
+                        <div class="bg-light p-2 text-center border">{{ ad.title }}</div>
+                        {% endif %}
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% if global_ads %}
+<div class="row mb-3">
+    <div class="col-12">
+        {% for ad in global_ads %}
+        <div class="text-center bg-light p-2 border rounded">
+            <a href="{% url 'enyumba:ad_click' ad.id %}" target="_blank" rel="nofollow">
+                {% if ad.image %}
+                    <img src="{{ ad.image.url }}" class="img-fluid" style="max-height: 80px;">
+                {% else %}
+                    <strong>{{ ad.title }}</strong> – {{ ad.description|truncatechars:100 }}
+                {% endif %}
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

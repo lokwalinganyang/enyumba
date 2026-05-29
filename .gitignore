@@ -1,0 +1,16 @@
+echo "# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+ENV/
+db.sqlite3
+.DS_Store
+staticfiles/
+media/
+*.log
+.env
+local_settings.py
+" > .gitignore
