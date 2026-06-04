@@ -4,9 +4,9 @@ from django.contrib import messages
 from django.core.cache import cache
 from django.db.models import Q
 from django.conf import settings
+from django.urls import reverse
 from .models import Landlord, Property, Report, Advertisement
 from .forms import LandlordForm, PropertyForm
-from django.urls import reverse
 
 
 def get_client_ip(request):
@@ -14,6 +14,27 @@ def get_client_ip(request):
     if x_forwarded_for:
         return x_forwarded_for.split(',')[0]
     return request.META.get('REMOTE_ADDR')
+
+
+def home(request):
+    """Landing page with three main categories: Lease, Airbnb, Conference."""
+    recent_lease = Property.objects.filter(
+        is_approved=True, is_active=True, property_type='lease'
+    ).order_by('-created_at')[:3]
+    recent_airbnb = Property.objects.filter(
+        is_approved=True, is_active=True, property_type='airbnb'
+    ).order_by('-created_at')[:3]
+    recent_conference = Property.objects.filter(
+        is_approved=True, is_active=True, property_type='conference'
+    ).order_by('-created_at')[:3]
+
+    context = {
+        'recent_lease': recent_lease,
+        'recent_airbnb': recent_airbnb,
+        'recent_conference': recent_conference,
+    }
+    return render(request, 'enyumba/home.html', context)
+
 
 def landlord_start(request):
     if request.method == 'POST':
@@ -32,6 +53,7 @@ def landlord_start(request):
     else:
         form = LandlordForm()
     return render(request, 'enyumba/landlord_start.html', {'form': form})
+
 
 def verify_phone(request):
     if request.method == 'POST':
@@ -55,6 +77,7 @@ def verify_phone(request):
             messages.error(request, "Wrong code. Try again.")
     return render(request, 'enyumba/verify_phone.html')
 
+
 def add_property(request):
     landlord_id = request.session.get('landlord_id')
     if not landlord_id:
@@ -68,82 +91,159 @@ def add_property(request):
             prop.save()
             messages.success(request, "Property submitted! It will appear after admin approval.")
             del request.session['landlord_id']
-            return redirect('enyumba:property_thanks')
+            return redirect('enyumba:property_thanks', prop_id=prop.id)
     else:
         form = PropertyForm()
     return render(request, 'enyumba/add_property.html', {'form': form, 'landlord': landlord})
-def ad_click(request, ad_id):
-    ad = get_object_or_404(Advertisement, pk=ad_id, status='active')
-    ad.clicks += 1
-    ad.save()
-    return redirect(ad.link_url)
+
+
 def property_thanks(request, prop_id):
     prop = get_object_or_404(Property, id=prop_id)
     share_url = request.build_absolute_uri(reverse('enyumba:property_detail', args=[prop.id]))
     return render(request, 'enyumba/thanks.html', {'property': prop, 'share_url': share_url})
 
+
+def ad_click(request, ad_id):
+    ad = get_object_or_404(Advertisement, pk=ad_id, status='active')
+    ad.clicks += 1
+    ad.save()
+    return redirect(ad.link_url)
+
+
 def search_properties(request):
     properties = Property.objects.filter(is_approved=True, is_active=True).order_by('-created_at')
-    
-    # Filters
+
+    # 1. Property type filter
+    property_type = request.GET.get('property_type')
+    if property_type in ['lease', 'airbnb', 'conference']:
+        properties = properties.filter(property_type=property_type)
+
+    # 2. Text search
     q = request.GET.get('q')
-    house_type = request.GET.get('house_type')
-    min_price = request.GET.get('min_price')
-    max_price = request.GET.get('max_price')
-    has_tiles = request.GET.get('has_tiles')
-    has_water = request.GET.get('has_water')
-    has_hot_shower = request.GET.get('has_hot_shower')
-    has_internet = request.GET.get('has_internet')
-    parking = request.GET.get('parking')
-    
     if q:
         properties = properties.filter(
             Q(title__icontains=q) | Q(description__icontains=q) |
             Q(location_neighbourhood__icontains=q) | Q(location_landmark__icontains=q)
         )
+
+    # 3. House type (only for lease/airbnb)
+    house_type = request.GET.get('house_type')
     if house_type:
         properties = properties.filter(house_type=house_type)
+
+    # 4. Neighbourhood filter (dropdown)
+    neighbourhood = request.GET.get('neighbourhood')
+    if neighbourhood:
+        properties = properties.filter(location_neighbourhood=neighbourhood)
+
+    # 5. Compound filter
+    compound_only = request.GET.get('compound_only')
+    if compound_only == 'yes':
+        properties = properties.filter(is_in_compound=True)
+    standalone_only = request.GET.get('standalone_only')
+    if standalone_only == 'yes':
+        properties = properties.filter(is_in_compound=False)
+
+    # 6. Price filtering (type‑aware)
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
     if min_price:
-        properties = properties.filter(monthly_rent__gte=min_price)
+        min_price = int(min_price)
+        price_filter = Q(
+            Q(property_type='lease', monthly_rent__gte=min_price) |
+            Q(property_type='airbnb', nightly_rate__gte=min_price) |
+            Q(property_type='conference', hourly_rate__gte=min_price)
+        )
+        properties = properties.filter(price_filter)
     if max_price:
-        properties = properties.filter(monthly_rent__lte=max_price)
+        max_price = int(max_price)
+        price_filter = Q(
+            Q(property_type='lease', monthly_rent__lte=max_price) |
+            Q(property_type='airbnb', nightly_rate__lte=max_price) |
+            Q(property_type='conference', hourly_rate__lte=max_price)
+        )
+        properties = properties.filter(price_filter)
+
+    # 7. Feature filters (only for lease/airbnb)
+    has_tiles = request.GET.get('has_tiles')
     if has_tiles == 'yes':
-        properties = properties.filter(has_tiles=True)
+        properties = properties.filter(property_type__in=['lease', 'airbnb'], has_tiles=True)
+
+    has_terrazzo = request.GET.get('has_terrazzo')
+    if has_terrazzo == 'yes':
+        properties = properties.filter(property_type__in=['lease', 'airbnb'], has_terrazzo=True)
+
+    has_water = request.GET.get('has_water')
     if has_water == 'yes':
-        properties = properties.filter(has_water=True)
+        properties = properties.filter(property_type__in=['lease', 'airbnb'], has_water=True)
+
+    has_hot_shower = request.GET.get('has_hot_shower')
     if has_hot_shower == 'yes':
-        properties = properties.filter(has_hot_shower=True)
+        properties = properties.filter(property_type__in=['lease', 'airbnb'], has_hot_shower=True)
+
+    has_internet = request.GET.get('has_internet')
     if has_internet == 'yes':
-        properties = properties.filter(has_internet=True)
+        properties = properties.filter(property_type__in=['lease', 'airbnb'], has_internet=True)
+
+    parking = request.GET.get('parking')
     if parking == 'yes':
-        properties = properties.filter(parking_capacity__gt=0)
-    
+        properties = properties.filter(property_type__in=['lease', 'airbnb'], parking_capacity__gt=0)
+
+    # 8. Conference capacity range filter
+    capacity_range = request.GET.get('capacity_range')
+    if capacity_range:
+        properties = properties.filter(property_type='conference', capacity_range=capacity_range)
+
+    # 9. Add share URL to each property
+    for prop in properties:
+        prop.share_url = request.build_absolute_uri(reverse('enyumba:property_detail', args=[prop.id]))
+
+    # Get distinct neighbourhoods for filter dropdown
+    neighbourhoods = Property.objects.filter(
+        is_approved=True, is_active=True
+    ).values_list('location_neighbourhood', flat=True).distinct()
+    neighbourhoods = sorted([n for n in neighbourhoods if n])
+
     context = {
         'properties': properties,
         'filters': request.GET,
         'house_type_choices': Property.HOUSE_TYPES,
+        'property_type_choices': Property.PROPERTY_TYPES,
+        'capacity_range_choices': Property.CAPACITY_RANGES,
+        'neighbourhoods': neighbourhoods,
     }
     return render(request, 'enyumba/search.html', context)
+
 
 def property_detail(request, pk):
     prop = get_object_or_404(Property, pk=pk, is_approved=True, is_active=True)
     share_url = request.build_absolute_uri(reverse('enyumba:property_detail', args=[prop.id]))
+
     show_contact = False
     contact_message = None
     ip = get_client_ip(request)
     cache_key = f'enyumba_contact_{ip}'
     reveal_count = cache.get(cache_key, 0)
-    
+
     if request.GET.get('reveal') == '1':
         if reveal_count < settings.CONTACT_REVEAL_LIMIT:
             show_contact = True
             cache.set(cache_key, reveal_count + 1, timeout=settings.CONTACT_REVEAL_WINDOW)
         else:
             contact_message = "Daily contact limit reached. Try tomorrow."
-    
+
+    # Price display
+    if prop.property_type == 'lease':
+        price_display = f"KES {prop.monthly_rent}/month"
+    elif prop.property_type == 'airbnb':
+        price_display = f"KES {prop.nightly_rate}/night"
+    else:
+        price_display = f"KES {prop.hourly_rate}/hour" if prop.hourly_rate else "Contact for pricing"
+
     context = {
         'property': prop,
         'share_url': share_url,
+        'price_display': price_display,
         'show_contact': show_contact,
         'contact_message': contact_message,
         'landlord_phone': prop.landlord.phone if show_contact else None,
@@ -152,6 +252,7 @@ def property_detail(request, pk):
         'reveal_limit': settings.CONTACT_REVEAL_LIMIT,
     }
     return render(request, 'enyumba/detail.html', context)
+
 
 def report_property(request, pk):
     if request.method == 'POST':

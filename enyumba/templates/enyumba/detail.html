@@ -59,6 +59,7 @@
         <ul class="list-unstyled row">
             <div class="col-6">
                 <li>{% if property.has_tiles %}✅{% else %}❌{% endif %} Tiled floors</li>
+                <li>{% if property.has_terrazzo %}✅{% else %}❌{% endif %} Terrazzo flooring</li>
                 <li>{% if property.has_water %}✅{% else %}❌{% endif %} Water supply 
                     {% if property.water_source %}({{ property.get_water_source_display }}){% endif %}
                 </li>

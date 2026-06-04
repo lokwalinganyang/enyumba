@@ -18,7 +18,7 @@ class PropertyForm(forms.ModelForm):
         fields = [
             'title', 'description', 'house_type', 'monthly_rent',
             'location_neighbourhood', 'location_landmark',
-            'has_tiles', 'has_water', 'water_source', 'water_schedule',
+            'has_tiles', 'has_terrazzo', 'has_water', 'water_source', 'water_schedule',
             'has_hot_shower', 'has_internet', 'parking_capacity',
             'electricity_billing', 'has_shop_room', 'extra_features',
             'image1', 'image2', 'image3', 'image4'

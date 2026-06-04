@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}eNYUMBA – Find a place in Lodwar{% endblock %}
+
+{% block content %}
+<div class="text-center mb-5">
+    <h1 class="display-4">Find your space in Lodwar</h1>
+    <p class="lead">Rent a house, book a short‑stay, or reserve a conference facility</p>
+</div>
+
+<div class="row g-4">
+    <!-- Lease Card -->
+    <div class="col-md-4">
+        <div class="card h-100 text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-house-door-fill" style="font-size: 3rem;"></i>
+                <h3 class="card-title mt-3">Long‑term Lease</h3>
+                <p class="card-text">Find a house or apartment for monthly rent. Perfect for families, workers, and students.</p>
+                <a href="{% url 'enyumba:search' %}?property_type=lease" class="btn btn-primary">Browse Leases →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Airbnb Card -->
+    <div class="col-md-4">
+        <div class="card h-100 text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-building" style="font-size: 3rem;"></i>
+                <h3 class="card-title mt-3">Short‑term / Airbnb</h3>
+                <p class="card-text">Book a fully furnished place for a few nights. Great for visitors and short projects.</p>
+                <a href="{% url 'enyumba:search' %}?property_type=airbnb" class="btn btn-primary">Browse Airbnbs →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conference Card -->
+    <div class="col-md-4">
+        <div class="card h-100 text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-people-fill" style="font-size: 3rem;"></i>
+                <h3 class="card-title mt-3">Conference Facilities</h3>
+                <p class="card-text">Rent a meeting hall, boardroom, or training centre by the hour or day.</p>
+                <a href="{% url 'enyumba:search' %}?property_type=conference" class="btn btn-primary">Browse Venues →</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Optional: Show a few recent properties from each type -->
+<hr class="my-5">
+<h3 class="text-center">Recently added</h3>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <h5 class="text-center"> Latest Leases</h5>
+        {% for prop in recent_lease %}
+            <div class="card mb-2">
+                <div class="card-body">
+                    <h6>{{ prop.title }}</h6>
+                    <p class="small">KES {{ prop.monthly_rent }}/month</p>
+                    <a href="{% url 'enyumba:property_detail' prop.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-muted">No lease listings yet.</p>
+        {% endfor %}
+    </div>
+    <div class="col-md-4">
+        <h5 class="text-center"> Latest Airbnbs</h5>
+        {% for prop in recent_airbnb %}
+            <div class="card mb-2">
+                <div class="card-body">
+                    <h6>{{ prop.title }}</h6>
+                    <p class="small">KES {{ prop.nightly_rate }}/night</p>
+                    <a href="{% url 'enyumba:property_detail' prop.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-muted">No Airbnb listings yet.</p>
+        {% endfor %}
+    </div>
+    <div class="col-md-4">
+        <h5 class="text-center">Latest Conference Venues</h5>
+        {% for prop in recent_conference %}
+            <div class="card mb-2">
+                <div class="card-body">
+                    <h6>{{ prop.title }}</h6>
+                    <p class="small">Capacity: {{ prop.capacity }} people</p>
+                    <a href="{% url 'enyumba:property_detail' prop.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-muted">No conference venues yet.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

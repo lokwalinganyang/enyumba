@@ -2,7 +2,7 @@
     "version": 2,
     "builds": [
         {
-            "src": "enyumba/wsgi.py",
+            "src": "config/wsgi.py",
             "use": "@vercel/python",
             "config": { "maxLambdaSize": "15mb", "runtime": "python3.12" }
         },
@@ -19,7 +19,7 @@
         },
         {
             "src": "/(.*)",
-            "dest": "enyumba/wsgi.py"
+            "dest": "config/wsgi.py"
         }
     ],
     "outputDirectory": "staticfiles"
