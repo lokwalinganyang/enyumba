@@ -1,6 +1,8 @@
 #!/bin/bash
+
 echo "Installing dependencies..."
-python3 -m pip install -r requirements.txt
+# Add the '--break-system-packages' flag to fix the external environment error
+python3 -m pip install --break-system-packages -r requirements.txt
 
 echo "Running migrations..."
 python3 manage.py migrate --noinput
