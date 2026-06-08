@@ -36,3 +36,5 @@ uploads/
 # Django
 *.log
 local_settings.py
+.vercel
+.env*
