@@ -3,10 +3,20 @@ import dj_database_url
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-SECRET_KEY = 'django-insecure-nyumba@2026'
-DEBUG = True
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-nyumba@2026')
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['.vercel.app', 'localhost', '127.0.0.1']
+# For Vercel deployment
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.vercel.app',
+    'https://enyumba.vercel.app',
+]
+SESSION_COOKIE_DOMAIN = '.vercel.app'
+CSRF_COOKIE_DOMAIN = '.vercel.app'
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -69,9 +79,9 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': 'duhyohtyq',
-    'API_KEY': '996447835644153',
-    'API_SECRET': '8MFrFHGH1MVr2uC_OTo_xBaEwVI',
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 # Cloudinary - get these from cloudinary.com (free)
 
