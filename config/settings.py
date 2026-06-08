@@ -17,6 +17,10 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = False
+SESSION_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_REFERER_POLICY = 'no-referrer-when-downgrade'
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -91,3 +95,6 @@ LOGIN_URL = '/admin/login/'
 # Rate limiting for contact reveals (simple cache)
 CONTACT_REVEAL_LIMIT = 5
 CONTACT_REVEAL_WINDOW = 86400   # 24h
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.admin import site
+site.login = csrf_exempt(site.login)
