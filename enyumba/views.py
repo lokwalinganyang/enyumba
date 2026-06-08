@@ -1,4 +1,8 @@
+import os
 import random
+from django.contrib.auth import get_user_model
+from django.db import connections
+from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.core.cache import cache
@@ -15,6 +19,17 @@ def get_client_ip(request):
         return x_forwarded_for.split(',')[0]
     return request.META.get('REMOTE_ADDR')
 
+def debug_info(request):
+    User = get_user_model()
+    data = {
+        'database_engine': connections['default'].settings_dict['ENGINE'],
+        'database_name': connections['default'].settings_dict['NAME'],
+        'superuser_count': User.objects.filter(is_superuser=True).count(),
+        'superuser_names': [u.username for u in User.objects.filter(is_superuser=True)],
+        'debug_mode': settings.DEBUG,
+        'database_url_set': bool(os.environ.get('DATABASE_URL')),
+    }
+    return JsonResponse(data)
 
 def home(request):
     """Landing page with three main categories: Lease, Airbnb, Conference."""
@@ -40,16 +55,23 @@ def landlord_start(request):
     if request.method == 'POST':
         form = LandlordForm(request.POST)
         if form.is_valid():
-            request.session['landlord_data'] = {
-                'name': form.cleaned_data['name'],
-                'phone': form.cleaned_data['phone'],
-                'alt_phone': form.cleaned_data['alt_phone'],
-            }
-            code = str(random.randint(100000, 999999))
-            request.session['verification_code'] = code
-            print(f"=== eNYUMBA VERIFICATION CODE for {form.cleaned_data['phone']}: {code} ===")
-            messages.success(request, "Enter the 6‑digit code sent to your phone (simulated).")
-            return redirect('enyumba:verify_phone')
+            phone = form.cleaned_data['phone']
+            name = form.cleaned_data['name']
+            alt_phone = form.cleaned_data['alt_phone']
+            
+            # Create or get landlord, mark as verified immediately
+            landlord, created = Landlord.objects.get_or_create(
+                phone=phone,
+                defaults={'name': name, 'alt_phone': alt_phone, 'is_verified': True}
+            )
+            if not created and not landlord.is_verified:
+                landlord.is_verified = True
+                landlord.save()
+            
+            # Store landlord ID in session and redirect to add property
+            request.session['landlord_id'] = landlord.id
+            messages.success(request, "Phone verified! Now list your property.")
+            return redirect('enyumba:add_property')
     else:
         form = LandlordForm()
     return render(request, 'enyumba/landlord_start.html', {'form': form})
