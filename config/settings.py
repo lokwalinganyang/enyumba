@@ -10,7 +10,7 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1']
 
 # CSRF settings for Render
-CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
+CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com','https://enyumba-ebxk.onrender.com',]
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 
