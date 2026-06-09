@@ -7,22 +7,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-fallback')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['.vercel.app', 'localhost', '127.0.0.1']
+# Render uses .onrender.com domain
+ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1']
 
-# ---------- CRITICAL COOKIE SETTINGS FOR VERCEL ----------
+# ---------- CSRF SETTINGS FOR RENDER ----------
 CSRF_TRUSTED_ORIGINS = [
-    'https://*.vercel.app',
-    'https://enyumba.vercel.app',
+    'https://*.onrender.com',
 ]
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = False
-CSRF_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_DOMAIN = '.vercel.app'
-
-SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_SAMESITE = 'None'
-SESSION_COOKIE_DOMAIN = '.vercel.app'
-# ---------------------------------------------------------
+# No need for CSRF_COOKIE_DOMAIN or SESSION_COOKIE_DOMAIN on Render
+# No need for SameSite=None (default 'Lax' works)
+# ----------------------------------------------
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -66,7 +62,7 @@ TEMPLATES = [
     },
 ]
 
-# Database
+# Database - Render will provide DATABASE_URL automatically
 DATABASES = {
     'default': dj_database_url.config(
         default='postgresql://user:pass@localhost:5432/db',
@@ -75,12 +71,13 @@ DATABASES = {
     )
 }
 
+# Static files
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Cloudinary - FIXED (hardcoded credentials)
+# Cloudinary (hardcoded credentials - replace with your actual values)
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': 'duhyohtyq',
@@ -91,10 +88,3 @@ CLOUDINARY_STORAGE = {
 LOGIN_URL = '/admin/login/'
 CONTACT_REVEAL_LIMIT = 5
 CONTACT_REVEAL_WINDOW = 86400
-
-# Temporarily disable CSRF for landlord forms (fix login later)
-from django.views.decorators.csrf import csrf_exempt
-from enyumba.views import landlord_start, add_property
-
-landlord_start = csrf_exempt(landlord_start)
-add_property = csrf_exempt(add_property)
