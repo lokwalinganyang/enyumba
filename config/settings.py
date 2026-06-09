@@ -7,18 +7,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-fallback')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Render uses .onrender.com domain
 ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1']
 
-# ---------- CSRF SETTINGS FOR RENDER ----------
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.onrender.com',
-]
+# CSRF settings for Render
+CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
 CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_HTTPONLY = False
-# No need for CSRF_COOKIE_DOMAIN or SESSION_COOKIE_DOMAIN on Render
-# No need for SameSite=None (default 'Lax' works)
-# ----------------------------------------------
+SESSION_COOKIE_SECURE = True
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -62,7 +56,7 @@ TEMPLATES = [
     },
 ]
 
-# Database - Render will provide DATABASE_URL automatically
+# Database - REQUIRES DATABASE_URL environment variable
 DATABASES = {
     'default': dj_database_url.config(
         default='postgresql://user:pass@localhost:5432/db',
@@ -77,7 +71,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Cloudinary (hardcoded credentials - replace with your actual values)
+# Cloudinary
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': 'duhyohtyq',
