@@ -2,13 +2,9 @@ services:
   - type: web
     name: enyumba
     runtime: python
-    repo: https://github.com/lokwalinganyang/enyumba
     plan: free
     region: ohio
-    buildCommand: |
-      pip install -r requirements.txt
-      python manage.py collectstatic --noinput
-      python manage.py migrate
+    buildCommand: ./build.sh
     startCommand: gunicorn config.wsgi:application
     envVars:
       - key: DATABASE_URL
@@ -20,11 +16,11 @@ services:
       - key: DEBUG
         value: "False"
       - key: CLOUDINARY_CLOUD_NAME
-        sync: false
+        value: "duhyohtyq"
       - key: CLOUDINARY_API_KEY
-        sync: false
+        value: "996447835644153"
       - key: CLOUDINARY_API_SECRET
-        sync: false
+        value: "8MFrFHGH1MVr2uC_OTo_xBaEwVI"
 
 databases:
   - name: enyumba-db
