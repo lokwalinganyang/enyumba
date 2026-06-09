@@ -4,27 +4,25 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-nyumba@2026')
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-fallback')
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'   # Set to True temporarily
 
 ALLOWED_HOSTS = ['.vercel.app', 'localhost', '127.0.0.1']
 
-# ---------- VERCEL‑SPECIFIC SETTINGS (CSRF, SESSIONS, COOKIES) ----------
+# ---------- CRITICAL: Force CSRF cookie to be set ----------
 CSRF_TRUSTED_ORIGINS = [
     'https://*.vercel.app',
     'https://enyumba.vercel.app',
 ]
-SESSION_COOKIE_DOMAIN = '.vercel.app'
-CSRF_COOKIE_DOMAIN = '.vercel.app'
-SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = False        # Required for JavaScript to read cookie (if any)
-SESSION_COOKIE_SAMESITE = 'None'    # Allows cross‑subdomain cookies
-CSRF_COOKIE_SAMESITE = 'None'
-CSRF_REFERER_POLICY = 'unsafe-url'  # Allows missing Referer header (common on Vercel)
-# -----------------------------------------------------------------------
+CSRF_COOKIE_HTTPONLY = False          # Allow JavaScript to read (though not needed)
+CSRF_COOKIE_SAMESITE = 'None'         # Required for cross-subdomain requests on Vercel
+CSRF_COOKIE_DOMAIN = '.vercel.app'    # Explicit domain for the cookie
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_DOMAIN = '.vercel.app'
 
+# ---------- The rest of your settings (keep unchanged) ----------
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -67,19 +65,18 @@ TEMPLATES = [
     },
 ]
 
-# ---------- DATABASE (Always use DATABASE_URL from Vercel environment) ----------
+# Database
 DATABASES = {
     'default': dj_database_url.config(
-        default='postgresql://user:pass@localhost:5432/db',   # fallback (not used on Vercel)
+        default='postgresql://user:pass@localhost:5432/db',
         conn_max_age=600,
         ssl_require=True
     )
 }
 
-# ---------- STATIC & MEDIA ----------
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'static']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
@@ -89,7 +86,6 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 
-# ---------- AUTH & RATE LIMITING ----------
 LOGIN_URL = '/admin/login/'
 CONTACT_REVEAL_LIMIT = 5
-CONTACT_REVEAL_WINDOW = 86400   # 24h
+CONTACT_REVEAL_WINDOW = 86400
