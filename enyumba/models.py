@@ -17,9 +17,10 @@ class Landlord(models.Model):
 
 class Property(models.Model):
     PROPERTY_TYPES = [
-        ('lease', 'Long‑term Lease (monthly)'),
-        ('airbnb', 'Short‑term / Airbnb (nightly)'),
-        ('conference', 'Conference Facility'),
+        ('rent', 'Monthly Rent (rolling contract)'),
+        ('lease', 'Long‑term Lease (6+ months)'),
+        ('airbnb', 'Short‑stay / Airbnb (nightly)'),
+        ('conference', 'Conference Facility (hourly)'),
     ]
     HOUSE_TYPES = [
         ('bedsitter', 'Bedsitter'),
@@ -52,7 +53,7 @@ class Property(models.Model):
     description = models.TextField()
 
     # Property type
-    property_type = models.CharField(max_length=20, choices=PROPERTY_TYPES, default='lease')
+    property_type = models.CharField(max_length=20, choices=PROPERTY_TYPES, default='rent')
 
     # Compound / multi‑unit support
     is_in_compound = models.BooleanField(default=False, help_text="Is this property part of a compound (multiple units on same plot)?")
@@ -61,12 +62,17 @@ class Property(models.Model):
     total_units = models.PositiveSmallIntegerField(default=1, help_text="Number of houses/units in this property")
     unit_number = models.CharField(max_length=10, blank=True, help_text="e.g., House A, Unit 2 – if listing individually")
 
-    # Lease‑specific fields
-    monthly_rent = models.PositiveIntegerField(null=True, blank=True, help_text="For lease listings only")
-    deposit = models.PositiveIntegerField(null=True, blank=True, help_text="Lease deposit (KES)")
-    min_lease_months = models.PositiveSmallIntegerField(default=6)
+    # Rent & Lease common fields (monthly pricing)
+    monthly_rent = models.PositiveIntegerField(null=True, blank=True, help_text="For rent/lease listings only")
+    deposit = models.PositiveIntegerField(null=True, blank=True, help_text="Deposit (usually 1 month rent)")
 
-    # Common feature fields (lease & Airbnb)
+    # Lease‑specific
+    min_lease_months = models.PositiveSmallIntegerField(default=6, help_text="Minimum lease period in months")
+
+    # Rent‑specific
+    is_furnished = models.BooleanField(default=False, help_text="For rent listings only")
+
+    # Common feature fields (rent & lease & Airbnb)
     house_type = models.CharField(max_length=20, choices=HOUSE_TYPES, blank=True)
     has_tiles = models.BooleanField(default=False)
     has_terrazzo = models.BooleanField(default=False, help_text="Terrazzo floor finishing")
@@ -125,10 +131,12 @@ class Property(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        if self.property_type == 'lease':
-            return f"{self.title} - KES {self.monthly_rent}/month"
+        if self.property_type == 'rent':
+            return f"{self.title} - KES {self.monthly_rent}/month (Rent)"
+        elif self.property_type == 'lease':
+            return f"{self.title} - KES {self.monthly_rent}/month (Lease)"
         elif self.property_type == 'airbnb':
-            return f"{self.title} - KES {self.nightly_rate}/night"
+            return f"{self.title} - KES {self.nightly_rate}/night (Airbnb)"
         else:
             range_display = self.get_capacity_range_display()
             return f"{self.title} - Conference ({range_display or f'cap {self.capacity}'})"

@@ -5,92 +5,145 @@
 {% block content %}
 <div class="text-center mb-5">
     <h1 class="display-4">Find your space in Lodwar</h1>
-    <p class="lead">Rent a house, book a short‑stay, or reserve a conference facility</p>
+    <p class="lead">Rent monthly, lease long‑term, book a short‑stay, or reserve a conference facility</p>
 </div>
 
 <div class="row g-4">
-    <!-- Lease Card -->
-    <div class="col-md-4">
+    <!-- Monthly Rent Card -->
+    <div class="col-md-3">
         <div class="card h-100 text-center shadow-sm">
             <div class="card-body">
-                <i class="bi bi-house-door-fill" style="font-size: 3rem;"></i>
+                <i class="bi bi-calendar-month" style="font-size: 3rem;"></i>
+                <h3 class="card-title mt-3">Monthly Rent</h3>
+                <p class="card-text">Rolling contract. Pay month‑to‑month. Flexible move‑in/out.</p>
+                <ul class="text-start small">
+                    <li>✓ Monthly payment</li>
+                    <li>✓ No long‑term commitment</li>
+                    <li>✓ Various house types</li>
+                </ul>
+                <a href="{% url 'enyumba:search' %}?property_type=rent" class="btn btn-primary">Browse Rentals →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Long‑term Lease Card -->
+    <div class="col-md-3">
+        <div class="card h-100 text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-file-text" style="font-size: 3rem;"></i>
                 <h3 class="card-title mt-3">Long‑term Lease</h3>
-                <p class="card-text">Find a house or apartment for monthly rent. Perfect for families, workers, and students.</p>
+                <p class="card-text">6+ months commitment. Better rates. Deposit required.</p>
+                <ul class="text-start small">
+                    <li>✓ Lower monthly rate</li>
+                    <li>✓ 6+ months contract</li>
+                    <li>✓ Deposit (usually 1 month)</li>
+                </ul>
                 <a href="{% url 'enyumba:search' %}?property_type=lease" class="btn btn-primary">Browse Leases →</a>
             </div>
         </div>
     </div>
 
-    <!-- Airbnb Card -->
-    <div class="col-md-4">
+    <!-- Short‑stay / Airbnb Card -->
+    <div class="col-md-3">
         <div class="card h-100 text-center shadow-sm">
             <div class="card-body">
                 <i class="bi bi-building" style="font-size: 3rem;"></i>
-                <h3 class="card-title mt-3">Short‑term / Airbnb</h3>
-                <p class="card-text">Book a fully furnished place for a few nights. Great for visitors and short projects.</p>
-                <a href="{% url 'enyumba:search' %}?property_type=airbnb" class="btn btn-primary">Browse Airbnbs →</a>
+                <h3 class="card-title mt-3">Short‑stay / Airbnb</h3>
+                <p class="card-text">Nightly rental. Fully furnished. Perfect for visitors.</p>
+                <ul class="text-start small">
+                    <li>✓ Nightly rate</li>
+                    <li>✓ Cleaning fee (one‑time)</li>
+                    <li>✓ Bedrooms, beds, guests</li>
+                </ul>
+                <a href="{% url 'enyumba:search' %}?property_type=airbnb" class="btn btn-primary">Browse Short‑Stays →</a>
             </div>
         </div>
     </div>
 
     <!-- Conference Card -->
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card h-100 text-center shadow-sm">
             <div class="card-body">
                 <i class="bi bi-people-fill" style="font-size: 3rem;"></i>
                 <h3 class="card-title mt-3">Conference Facilities</h3>
-                <p class="card-text">Rent a meeting hall, boardroom, or training centre by the hour or day.</p>
+                <p class="card-text">Hourly or day rental. Meetings, training, events.</p>
+                <ul class="text-start small">
+                    <li>✓ Hourly / half‑day / full‑day rates</li>
+                    <li>✓ Capacity (people)</li>
+                    <li>✓ Equipment (projector, sound, etc.)</li>
+                </ul>
                 <a href="{% url 'enyumba:search' %}?property_type=conference" class="btn btn-primary">Browse Venues →</a>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Optional: Show a few recent properties from each type -->
+<!-- Recent Properties Section -->
 <hr class="my-5">
 <h3 class="text-center">Recently added</h3>
 
 <div class="row mt-4">
-    <div class="col-md-4">
-        <h5 class="text-center"> Latest Leases</h5>
+    <!-- Recent Rent Listings -->
+    <div class="col-md-3">
+        <h5 class="text-center">🏠 Monthly Rent</h5>
+        {% for prop in recent_rent %}
+            <div class="card mb-2">
+                <div class="card-body">
+                    <h6>{{ prop.title|truncatechars:30 }}</h6>
+                    <p class="small text-primary fw-bold">KES {{ prop.monthly_rent }}/month</p>
+                    <a href="{% url 'enyumba:property_detail' prop.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-muted small">No rent listings yet.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Recent Lease Listings -->
+    <div class="col-md-3">
+        <h5 class="text-center">📄 Long‑term Lease</h5>
         {% for prop in recent_lease %}
             <div class="card mb-2">
                 <div class="card-body">
-                    <h6>{{ prop.title }}</h6>
-                    <p class="small">KES {{ prop.monthly_rent }}/month</p>
+                    <h6>{{ prop.title|truncatechars:30 }}</h6>
+                    <p class="small text-primary fw-bold">KES {{ prop.monthly_rent }}/month</p>
                     <a href="{% url 'enyumba:property_detail' prop.id %}" class="btn btn-sm btn-outline-primary">View</a>
                 </div>
             </div>
         {% empty %}
-            <p class="text-muted">No lease listings yet.</p>
+            <p class="text-muted small">No lease listings yet.</p>
         {% endfor %}
     </div>
-    <div class="col-md-4">
-        <h5 class="text-center"> Latest Airbnbs</h5>
+
+    <!-- Recent Airbnb Listings -->
+    <div class="col-md-3">
+        <h5 class="text-center">🏡 Short‑stay / Airbnb</h5>
         {% for prop in recent_airbnb %}
             <div class="card mb-2">
                 <div class="card-body">
-                    <h6>{{ prop.title }}</h6>
-                    <p class="small">KES {{ prop.nightly_rate }}/night</p>
+                    <h6>{{ prop.title|truncatechars:30 }}</h6>
+                    <p class="small text-primary fw-bold">KES {{ prop.nightly_rate }}/night</p>
                     <a href="{% url 'enyumba:property_detail' prop.id %}" class="btn btn-sm btn-outline-primary">View</a>
                 </div>
             </div>
         {% empty %}
-            <p class="text-muted">No Airbnb listings yet.</p>
+            <p class="text-muted small">No Airbnb listings yet.</p>
         {% endfor %}
     </div>
-    <div class="col-md-4">
-        <h5 class="text-center">Latest Conference Venues</h5>
+
+    <!-- Recent Conference Listings -->
+    <div class="col-md-3">
+        <h5 class="text-center">🏛️ Conference Venues</h5>
         {% for prop in recent_conference %}
             <div class="card mb-2">
                 <div class="card-body">
-                    <h6>{{ prop.title }}</h6>
-                    <p class="small">Capacity: {{ prop.capacity }} people</p>
+                    <h6>{{ prop.title|truncatechars:30 }}</h6>
+                    <p class="small text-primary fw-bold">Cap: {{ prop.capacity|default:"?" }} people</p>
                     <a href="{% url 'enyumba:property_detail' prop.id %}" class="btn btn-sm btn-outline-primary">View</a>
                 </div>
             </div>
         {% empty %}
-            <p class="text-muted">No conference venues yet.</p>
+            <p class="text-muted small">No conference venues yet.</p>
         {% endfor %}
     </div>
 </div>

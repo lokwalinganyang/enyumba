@@ -32,7 +32,10 @@ def debug_info(request):
     return JsonResponse(data)
 
 def home(request):
-    """Landing page with three main categories: Lease, Airbnb, Conference."""
+    """Landing page with four main categories: Rent, Lease, Airbnb, Conference."""
+    recent_rent = Property.objects.filter(
+        is_approved=True, is_active=True, property_type='rent'
+    ).order_by('-created_at')[:3]
     recent_lease = Property.objects.filter(
         is_approved=True, is_active=True, property_type='lease'
     ).order_by('-created_at')[:3]
@@ -44,6 +47,7 @@ def home(request):
     ).order_by('-created_at')[:3]
 
     context = {
+        'recent_rent': recent_rent,
         'recent_lease': recent_lease,
         'recent_airbnb': recent_airbnb,
         'recent_conference': recent_conference,
@@ -135,9 +139,9 @@ def ad_click(request, ad_id):
 def search_properties(request):
     properties = Property.objects.filter(is_approved=True, is_active=True).order_by('-created_at')
 
-    # 1. Property type filter
+    # 1. Property type filter (including 'rent')
     property_type = request.GET.get('property_type')
-    if property_type in ['lease', 'airbnb', 'conference']:
+    if property_type in ['rent', 'lease', 'airbnb', 'conference']:
         properties = properties.filter(property_type=property_type)
 
     # 2. Text search
@@ -148,30 +152,37 @@ def search_properties(request):
             Q(location_neighbourhood__icontains=q) | Q(location_landmark__icontains=q)
         )
 
-    # 3. House type (only for lease/airbnb)
+    # 3. House type (only for rent/lease/airbnb)
     house_type = request.GET.get('house_type')
     if house_type:
-        properties = properties.filter(house_type=house_type)
+        properties = properties.filter(property_type__in=['rent', 'lease', 'airbnb'], house_type=house_type)
 
     # 4. Neighbourhood filter (dropdown)
     neighbourhood = request.GET.get('neighbourhood')
     if neighbourhood:
         properties = properties.filter(location_neighbourhood=neighbourhood)
 
-    # 5. Compound filter
+    # 5. Compound filter (only for rent/lease)
     compound_only = request.GET.get('compound_only')
     if compound_only == 'yes':
-        properties = properties.filter(is_in_compound=True)
+        properties = properties.filter(property_type__in=['rent', 'lease'], is_in_compound=True)
     standalone_only = request.GET.get('standalone_only')
     if standalone_only == 'yes':
-        properties = properties.filter(is_in_compound=False)
+        properties = properties.filter(property_type__in=['rent', 'lease'], is_in_compound=False)
 
-    # 6. Price filtering (type‑aware)
+    # 6. Furnished filter (only for rent)
+    is_furnished = request.GET.get('is_furnished')
+    if is_furnished == 'yes':
+        properties = properties.filter(property_type='rent', is_furnished=True)
+
+    # 7. Price filtering (type‑aware)
     min_price = request.GET.get('min_price')
     max_price = request.GET.get('max_price')
+    
     if min_price:
         min_price = int(min_price)
         price_filter = Q(
+            Q(property_type='rent', monthly_rent__gte=min_price) |
             Q(property_type='lease', monthly_rent__gte=min_price) |
             Q(property_type='airbnb', nightly_rate__gte=min_price) |
             Q(property_type='conference', hourly_rate__gte=min_price)
@@ -180,43 +191,85 @@ def search_properties(request):
     if max_price:
         max_price = int(max_price)
         price_filter = Q(
+            Q(property_type='rent', monthly_rent__lte=max_price) |
             Q(property_type='lease', monthly_rent__lte=max_price) |
             Q(property_type='airbnb', nightly_rate__lte=max_price) |
             Q(property_type='conference', hourly_rate__lte=max_price)
         )
         properties = properties.filter(price_filter)
 
-    # 7. Feature filters (only for lease/airbnb)
+    # 8. Feature filters (for rent/lease/airbnb)
     has_tiles = request.GET.get('has_tiles')
     if has_tiles == 'yes':
-        properties = properties.filter(property_type__in=['lease', 'airbnb'], has_tiles=True)
+        properties = properties.filter(property_type__in=['rent', 'lease', 'airbnb'], has_tiles=True)
 
     has_terrazzo = request.GET.get('has_terrazzo')
     if has_terrazzo == 'yes':
-        properties = properties.filter(property_type__in=['lease', 'airbnb'], has_terrazzo=True)
+        properties = properties.filter(property_type__in=['rent', 'lease', 'airbnb'], has_terrazzo=True)
 
     has_water = request.GET.get('has_water')
     if has_water == 'yes':
-        properties = properties.filter(property_type__in=['lease', 'airbnb'], has_water=True)
+        properties = properties.filter(property_type__in=['rent', 'lease', 'airbnb'], has_water=True)
 
     has_hot_shower = request.GET.get('has_hot_shower')
     if has_hot_shower == 'yes':
-        properties = properties.filter(property_type__in=['lease', 'airbnb'], has_hot_shower=True)
+        properties = properties.filter(property_type__in=['rent', 'lease', 'airbnb'], has_hot_shower=True)
 
     has_internet = request.GET.get('has_internet')
     if has_internet == 'yes':
-        properties = properties.filter(property_type__in=['lease', 'airbnb'], has_internet=True)
+        properties = properties.filter(property_type__in=['rent', 'lease', 'airbnb'], has_internet=True)
 
     parking = request.GET.get('parking')
     if parking == 'yes':
-        properties = properties.filter(property_type__in=['lease', 'airbnb'], parking_capacity__gt=0)
+        properties = properties.filter(property_type__in=['rent', 'lease', 'airbnb'], parking_capacity__gt=0)
 
-    # 8. Conference capacity range filter
+    # 9. Airbnb specific filters
+    bedrooms = request.GET.get('bedrooms')
+    if bedrooms:
+        properties = properties.filter(property_type='airbnb', bedrooms__gte=bedrooms)
+
+    beds = request.GET.get('beds')
+    if beds:
+        properties = properties.filter(property_type='airbnb', beds__gte=beds)
+
+    max_guests = request.GET.get('max_guests')
+    if max_guests:
+        properties = properties.filter(property_type='airbnb', max_guests__gte=max_guests)
+
+    baths = request.GET.get('baths')
+    if baths:
+        properties = properties.filter(property_type='airbnb', baths__gte=baths)
+
+    has_kitchen = request.GET.get('has_kitchen')
+    if has_kitchen == 'yes':
+        properties = properties.filter(property_type='airbnb', has_kitchen=True)
+
+    has_tv = request.GET.get('has_tv')
+    if has_tv == 'yes':
+        properties = properties.filter(property_type='airbnb', has_tv=True)
+
+    # 10. Conference specific filters
     capacity_range = request.GET.get('capacity_range')
     if capacity_range:
         properties = properties.filter(property_type='conference', capacity_range=capacity_range)
 
-    # 9. Add share URL to each property
+    has_projector = request.GET.get('has_projector')
+    if has_projector == 'yes':
+        properties = properties.filter(property_type='conference', has_projector=True)
+
+    has_sound_system = request.GET.get('has_sound_system')
+    if has_sound_system == 'yes':
+        properties = properties.filter(property_type='conference', has_sound_system=True)
+
+    has_whiteboard = request.GET.get('has_whiteboard')
+    if has_whiteboard == 'yes':
+        properties = properties.filter(property_type='conference', has_whiteboard=True)
+
+    catering_available = request.GET.get('catering_available')
+    if catering_available == 'yes':
+        properties = properties.filter(property_type='conference', catering_available=True)
+
+    # 11. Add share URL to each property
     for prop in properties:
         prop.share_url = request.build_absolute_uri(reverse('enyumba:property_detail', args=[prop.id]))
 
@@ -254,8 +307,8 @@ def property_detail(request, pk):
         else:
             contact_message = "Daily contact limit reached. Try tomorrow."
 
-    # Price display
-    if prop.property_type == 'lease':
+    # Price display based on property type
+    if prop.property_type in ['rent', 'lease']:
         price_display = f"KES {prop.monthly_rent}/month"
     elif prop.property_type == 'airbnb':
         price_display = f"KES {prop.nightly_rate}/night"

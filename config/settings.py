@@ -10,7 +10,10 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1']
 
 # CSRF settings for Render
-CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com','https://enyumba-ebxk.onrender.com',]
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.onrender.com',
+    'https://enyumba-ebxk.onrender.com',
+]
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 
@@ -56,14 +59,25 @@ TEMPLATES = [
     },
 ]
 
-# Database - REQUIRES DATABASE_URL environment variable
-DATABASES = {
-    'default': dj_database_url.config(
-        default='postgresql://user:pass@localhost:5432/db',
-        conn_max_age=600,
-        ssl_require=True
-    )
-}
+# ========== DATABASE: SQLite locally, PostgreSQL on Render ==========
+if os.environ.get('DATABASE_URL'):
+    # Production on Render
+    DATABASES = {
+        'default': dj_database_url.config(
+            default='postgresql://user:pass@localhost:5432/db',
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+else:
+    # Local development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+# ====================================================================
 
 # Static files
 STATIC_URL = 'static/'
