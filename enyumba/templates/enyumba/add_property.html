@@ -1,10 +1,410 @@
 {% extends 'base.html' %}
-{% block title %}Add Property Details{% endblock %}
+{% load static %}
+
+{% block title %}Add Property Details - eNyumba{% endblock %}
+
+{% block extra_head %}
+<style>
+    .type-specific-fields {
+        display: none;
+    }
+    .type-specific-fields.active {
+        display: block;
+    }
+    .form-section {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .form-section h4 {
+        margin-bottom: 20px;
+        color: #0d6efd;
+        border-bottom: 2px solid #0d6efd;
+        padding-bottom: 10px;
+    }
+    .help-text {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    .required:after {
+        content: " *";
+        color: red;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h2>Add Property Details</h2>
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Submit for Approval</button>
-</form>
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Add Property Details</h4>
+                <small>Tell us about your property – we'll show only relevant fields</small>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <!-- ========== PROPERTY TYPE SELECTION ========== -->
+                    <div class="form-section">
+                        <h4>1. Property Type</h4>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold required">What type of property are you listing?</label>
+                            <select name="property_type" id="propertyTypeSelect" class="form-select form-select-lg" required>
+                                <option value="">-- Select property type --</option>
+                                <option value="rent">🏠 Monthly Rent - Rolling contract, month-to-month</option>
+                                <option value="lease">📄 Long-term Lease - 6+ months commitment</option>
+                                <option value="airbnb">🏡 Short-stay / Airbnb - Nightly rate</option>
+                                <option value="conference">🏛️ Conference Facility - Hourly / daily rental</option>
+                            </select>
+                            <div class="help-text">Choose the type that best describes your property</div>
+                        </div>
+                    </div>
+
+                    <!-- ========== COMMON INFORMATION (all types) ========== -->
+                    <div class="form-section">
+                        <h4>2. Basic Information</h4>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label required">Property Title</label>
+                                <input type="text" name="title" class="form-control" required placeholder="e.g., Cozy 2-bedroom apartment near town center">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label required">Description</label>
+                            <textarea name="description" class="form-control" rows="4" required placeholder="Describe your property – size, condition, nearby amenities, special features, etc."></textarea>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Location / Neighbourhood</label>
+                                <input type="text" name="location_neighbourhood" class="form-control" placeholder="e.g., Nawoitorong, Kanamkemer, Nakuru Estate">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Nearby Landmark</label>
+                                <input type="text" name="location_landmark" class="form-control" placeholder="e.g., Near Ceamo Lodge, Near Total Petrol">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== RENT & LEASE FIELDS (monthly properties) ========== -->
+                    <div id="rentLeaseFields" class="type-specific-fields">
+                        <div class="form-section">
+                            <h4>3. Monthly Rent / Lease Details</h4>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">House Type</label>
+                                    <select name="house_type" class="form-select">
+                                        <option value="">Select type</option>
+                                        <option value="bedsitter">Bedsitter</option>
+                                        <option value="1br">1 Bedroom</option>
+                                        <option value="2br">2 Bedroom</option>
+                                        <option value="3br">3 Bedroom</option>
+                                        <option value="4br">4+ Bedroom</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Monthly Rent (KES)</label>
+                                    <input type="number" name="monthly_rent" class="form-control" placeholder="e.g., 8000">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Deposit (KES) - optional</label>
+                                    <input type="number" name="deposit" class="form-control" placeholder="e.g., 10000">
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="is_furnished" value="on" class="form-check-input" id="furnished">
+                                        <label class="form-check-label" for="furnished">Furnished property</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="is_in_compound" value="on" class="form-check-input" id="inCompound">
+                                        <label class="form-check-label" for="inCompound">Part of a compound (multiple units)</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr>
+                            <label class="fw-bold mb-2">Amenities & Features</label>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="has_tiles" value="on" class="form-check-input" id="tiles">
+                                        <label class="form-check-label" for="tiles">Tiles floor</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="has_terrazzo" value="on" class="form-check-input" id="terrazzo">
+                                        <label class="form-check-label" for="terrazzo">Terrazzo floor</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="has_water" value="on" class="form-check-input" id="water">
+                                        <label class="form-check-label" for="water">Water available</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="has_hot_shower" value="on" class="form-check-input" id="hotShower">
+                                        <label class="form-check-label" for="hotShower">Hot shower</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="has_internet" value="on" class="form-check-input" id="internet">
+                                        <label class="form-check-label" for="internet">Internet / WiFi ready</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="has_shop_room" value="on" class="form-check-input" id="shopRoom">
+                                        <label class="form-check-label" for="shopRoom">Has shop room</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Parking spaces</label>
+                                    <input type="number" name="parking_capacity" class="form-control" value="0" min="0">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Electricity billing</label>
+                                    <select name="electricity_billing" class="form-select">
+                                        <option value="separate">Separate bill</option>
+                                        <option value="included">Included in rent</option>
+                                        <option value="solar">Solar only</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Water source</label>
+                                    <select name="water_source" class="form-select">
+                                        <option value="">Select water source</option>
+                                        <option value="county">County supply</option>
+                                        <option value="borehole">Borehole</option>
+                                        <option value="tank">Raised tank</option>
+                                        <option value="truck">Water truck</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Water schedule</label>
+                                    <input type="text" name="water_schedule" class="form-control" placeholder="e.g., Mon, Wed, Fri 8am-12pm">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Extra features</label>
+                                <textarea name="extra_features" class="form-control" rows="2" placeholder="One per line, e.g.:&#10;✓ Large compound with gate&#10;✓ Gaach for relaxing&#10;✓ Security wall"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== AIRBNB FIELDS ========== -->
+                    <div id="airbnbFields" class="type-specific-fields">
+                        <div class="form-section">
+                            <h4>3. Airbnb / Short-stay Details</h4>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Nightly rate (KES)</label>
+                                    <input type="number" name="nightly_rate" class="form-control" placeholder="e.g., 3000">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Cleaning fee (KES)</label>
+                                    <input type="number" name="cleaning_fee" class="form-control" value="0">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Minimum nights</label>
+                                    <input type="number" name="min_nights" class="form-control" value="1" min="1">
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Bedrooms</label>
+                                    <input type="number" name="bedrooms" class="form-control" value="1" min="1">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Beds</label>
+                                    <input type="number" name="beds" class="form-control" value="1" min="1">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Baths</label>
+                                    <input type="number" name="baths" class="form-control" step="0.5" value="1">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Max guests</label>
+                                    <input type="number" name="max_guests" class="form-control" placeholder="e.g., 4" min="1">
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="has_kitchen" value="on" class="form-check-input" id="kitchen">
+                                        <label class="form-check-label" for="kitchen">Kitchen / Kitchenette</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="has_tv" value="on" class="form-check-input" id="tv">
+                                        <label class="form-check-label" for="tv">TV / Entertainment</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="has_internet" value="on" class="form-check-input" id="wifi">
+                                        <label class="form-check-label" for="wifi">WiFi / Internet</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Extra features</label>
+                                <textarea name="extra_features" class="form-control" rows="2" placeholder="One per line, e.g.:&#10;✓ Fully furnished&#10;✓ Private balcony&#10;✓ Free parking"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== CONFERENCE FIELDS ========== -->
+                    <div id="conferenceFields" class="type-specific-fields">
+                        <div class="form-section">
+                            <h4>3. Conference Facility Details</h4>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Capacity range</label>
+                                    <select name="capacity_range" class="form-select">
+                                        <option value="">Select capacity</option>
+                                        <option value="0_20">Up to 20 people</option>
+                                        <option value="20_30">20 - 30 people</option>
+                                        <option value="30_50">30 - 50 people</option>
+                                        <option value="50_100">50 - 100 people</option>
+                                        <option value="100_plus">100+ people</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Exact capacity (optional)</label>
+                                    <input type="number" name="capacity" class="form-control" placeholder="e.g., 50">
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Hourly rate (KES)</label>
+                                    <input type="number" name="hourly_rate" class="form-control" placeholder="e.g., 2000">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Half-day rate (4hrs)</label>
+                                    <input type="number" name="half_day_rate" class="form-control" placeholder="e.g., 6000">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Full-day rate (8hrs)</label>
+                                    <input type="number" name="full_day_rate" class="form-control" placeholder="e.g., 10000">
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="has_projector" value="on" class="form-check-input" id="projector">
+                                        <label class="form-check-label" for="projector">Projector</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="has_sound_system" value="on" class="form-check-input" id="sound">
+                                        <label class="form-check-label" for="sound">Sound system</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="has_whiteboard" value="on" class="form-check-input" id="whiteboard">
+                                        <label class="form-check-label" for="whiteboard">Whiteboard / Flip chart</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="catering_available" value="on" class="form-check-input" id="catering">
+                                        <label class="form-check-label" for="catering">Catering available</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Additional notes</label>
+                                <textarea name="conference_notes" class="form-control" rows="2" placeholder="Parking availability, accessibility, seating arrangement, equipment included, etc."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== IMAGES ========== -->
+                    <div class="form-section">
+                        <h4>4. Property Images</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Main image</label>
+                                <input type="file" name="image1" class="form-control" accept="image/*">
+                                <div class="help-text">First image will be the cover photo</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Image 2</label>
+                                <input type="file" name="image2" class="form-control" accept="image/*">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Image 3</label>
+                                <input type="file" name="image3" class="form-control" accept="image/*">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Image 4</label>
+                                <input type="file" name="image4" class="form-control" accept="image/*">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100 mt-3">Submit Property for Approval</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show/hide fields based on property type selection
+    document.getElementById('propertyTypeSelect').addEventListener('change', function() {
+        var selectedType = this.value;
+        
+        // Hide all type-specific sections
+        var rentLease = document.getElementById('rentLeaseFields');
+        var airbnb = document.getElementById('airbnbFields');
+        var conference = document.getElementById('conferenceFields');
+        
+        rentLease.classList.remove('active');
+        airbnb.classList.remove('active');
+        conference.classList.remove('active');
+        
+        // Show the relevant section
+        if (selectedType === 'rent' || selectedType === 'lease') {
+            rentLease.classList.add('active');
+        } else if (selectedType === 'airbnb') {
+            airbnb.classList.add('active');
+        } else if (selectedType === 'conference') {
+            conference.classList.add('active');
+        }
+    });
+</script>
 {% endblock %}
