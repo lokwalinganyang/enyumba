@@ -5,24 +5,25 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-fallback')
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'   # Set to True temporarily
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'   # set to True temporarily
 
 ALLOWED_HOSTS = ['.vercel.app', 'localhost', '127.0.0.1']
 
-# ---------- CRITICAL: Force CSRF cookie to be set ----------
+# ---------- CRITICAL COOKIE SETTINGS FOR VERCEL ----------
 CSRF_TRUSTED_ORIGINS = [
     'https://*.vercel.app',
     'https://enyumba.vercel.app',
 ]
 CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_HTTPONLY = False          # Allow JavaScript to read (though not needed)
-CSRF_COOKIE_SAMESITE = 'None'         # Required for cross-subdomain requests on Vercel
-CSRF_COOKIE_DOMAIN = '.vercel.app'    # Explicit domain for the cookie
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_DOMAIN = '.vercel.app'
+
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_DOMAIN = '.vercel.app'
+# ---------------------------------------------------------
 
-# ---------- The rest of your settings (keep unchanged) ----------
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -89,7 +90,3 @@ CLOUDINARY_STORAGE = {
 LOGIN_URL = '/admin/login/'
 CONTACT_REVEAL_LIMIT = 5
 CONTACT_REVEAL_WINDOW = 86400
-
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.admin import site
-site.login = csrf_exempt(site.login)
