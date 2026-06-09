@@ -8,13 +8,45 @@
     <!-- Filter sidebar (left column) -->
     <div class="col-md-3 mb-4">
         <div class="card">
-            <div class="card-header bg-primary text-white">Filter Properties</div>
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-funnel"></i> Filter Properties
+            </div>
             <div class="card-body">
-                <form method="get" action="{% url 'enyumba:search' %}">
+                <form method="get" action="{% url 'enyumba:search' %}" id="filterForm">
+                    
+                    <!-- ========== LOCATION SEARCH (PROMINENT) ========== -->
+                    <div class="mb-3 p-2 bg-light rounded">
+                        <label class="fw-bold text-primary">
+                            <i class="bi bi-geo-alt-fill"></i> Search by Location
+                        </label>
+                        <input type="text" name="location_q" class="form-control mt-1" 
+                               placeholder="e.g., Nawoitorong, Kanamkemer, or landmark" 
+                               value="{{ filters.location_q|default:'' }}"
+                               id="locationSearch">
+                        <div class="small text-muted mt-1">Search neighbourhood or landmark</div>
+                    </div>
+
+                    <!-- Popular Neighbourhoods Quick Links -->
+                    {% if neighbourhoods %}
+                    <div class="mb-3">
+                        <label class="small text-muted">Popular areas:</label>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            {% for hood in neighbourhoods|slice:":5" %}
+                            <a href="?{% if filters.property_type %}property_type={{ filters.property_type }}&{% endif %}neighbourhood={{ hood|urlencode }}" 
+                               class="badge bg-secondary text-decoration-none">
+                                {{ hood }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <hr>
+
                     <!-- Property type -->
                     <div class="mb-2">
                         <label>Property type</label>
-                        <select name="property_type" class="form-select">
+                        <select name="property_type" class="form-select" id="propertyTypeSelect">
                             <option value="">All</option>
                             {% for value, label in property_type_choices %}
                                 <option value="{{ value }}" {% if filters.property_type == value %}selected{% endif %}>{{ label }}</option>
@@ -25,7 +57,7 @@
                     <!-- Neighbourhood dropdown -->
                     <div class="mb-2">
                         <label>Neighbourhood</label>
-                        <select name="neighbourhood" class="form-select">
+                        <select name="neighbourhood" class="form-select" id="neighbourhoodSelect">
                             <option value="">All areas</option>
                             {% for hood in neighbourhoods %}
                                 <option value="{{ hood }}" {% if filters.neighbourhood == hood %}selected{% endif %}>{{ hood }}</option>
@@ -34,7 +66,7 @@
                     </div>
 
                     <!-- House type (only for lease/airbnb) -->
-                    <div class="mb-2">
+                    <div class="mb-2" id="houseTypeField">
                         <label>House type</label>
                         <select name="house_type" class="form-select">
                             <option value="">All</option>
@@ -46,7 +78,7 @@
 
                     <!-- Price range (interpreted contextually) -->
                     <div class="mb-2">
-                        <label>Min price (KES)</label>
+                        <label id="priceLabel">Min price (KES)</label>
                         <input type="number" name="min_price" class="form-control" value="{{ filters.min_price|default:'' }}">
                     </div>
                     <div class="mb-2">
@@ -55,7 +87,7 @@
                     </div>
 
                     <!-- Conference capacity range (only relevant for conference) -->
-                    <div class="mb-2">
+                    <div class="mb-2" id="capacityRangeField">
                         <label>Capacity range (conference)</label>
                         <select name="capacity_range" class="form-select">
                             <option value="">Any</option>
@@ -65,8 +97,44 @@
                         </select>
                     </div>
 
+                    <!-- Airbnb specific fields (hidden by default) -->
+                    <div id="airbnbFields" style="display: none;">
+                        <div class="mb-2">
+                            <label>Bedrooms (min)</label>
+                            <input type="number" name="bedrooms" class="form-control" value="{{ filters.bedrooms|default:'' }}">
+                        </div>
+                        <div class="mb-2">
+                            <label>Max guests</label>
+                            <input type="number" name="max_guests" class="form-control" value="{{ filters.max_guests|default:'' }}">
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="has_kitchen" value="yes" id="kitchen" {% if filters.has_kitchen == 'yes' %}checked{% endif %}>
+                            <label class="form-check-label" for="kitchen">Kitchen</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="has_tv" value="yes" id="tv" {% if filters.has_tv == 'yes' %}checked{% endif %}>
+                            <label class="form-check-label" for="tv">TV</label>
+                        </div>
+                    </div>
+
+                    <!-- Conference specific fields (hidden by default) -->
+                    <div id="conferenceFields" style="display: none;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="has_projector" value="yes" id="projector" {% if filters.has_projector == 'yes' %}checked{% endif %}>
+                            <label class="form-check-label" for="projector">Projector</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="has_sound_system" value="yes" id="sound" {% if filters.has_sound_system == 'yes' %}checked{% endif %}>
+                            <label class="form-check-label" for="sound">Sound system</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="catering_available" value="yes" id="catering" {% if filters.catering_available == 'yes' %}checked{% endif %}>
+                            <label class="form-check-label" for="catering">Catering</label>
+                        </div>
+                    </div>
+
                     <!-- Compound filters -->
-                    <div class="mb-2">
+                    <div class="mb-2" id="compoundFilters">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="compound_only" value="yes" id="compound_only" {% if filters.compound_only == 'yes' %}checked{% endif %}>
                             <label class="form-check-label" for="compound_only">Only in a compound</label>
@@ -78,33 +146,39 @@
                     </div>
 
                     <!-- Features (lease/airbnb) -->
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="has_tiles" value="yes" {% if filters.has_tiles == 'yes' %}checked{% endif %}>
-                        <label class="form-check-label">Tiles</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="has_terrazzo" value="yes" id="terrazzo" {% if filters.has_terrazzo == 'yes' %}checked{% endif %}>
-                        <label class="form-check-label" for="terrazzo">Terrazzo floor</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="has_water" value="yes" {% if filters.has_water == 'yes' %}checked{% endif %}>
-                        <label class="form-check-label">Water</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="has_hot_shower" value="yes" {% if filters.has_hot_shower == 'yes' %}checked{% endif %}>
-                        <label class="form-check-label">Hot shower</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="has_internet" value="yes" {% if filters.has_internet == 'yes' %}checked{% endif %}>
-                        <label class="form-check-label">Internet</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="parking" value="yes" {% if filters.parking == 'yes' %}checked{% endif %}>
-                        <label class="form-check-label">Parking</label>
+                    <div id="featureFilters">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="has_tiles" value="yes" {% if filters.has_tiles == 'yes' %}checked{% endif %}>
+                            <label class="form-check-label">Tiles</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="has_terrazzo" value="yes" id="terrazzo" {% if filters.has_terrazzo == 'yes' %}checked{% endif %}>
+                            <label class="form-check-label" for="terrazzo">Terrazzo floor</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="has_water" value="yes" {% if filters.has_water == 'yes' %}checked{% endif %}>
+                            <label class="form-check-label">Water</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="has_hot_shower" value="yes" {% if filters.has_hot_shower == 'yes' %}checked{% endif %}>
+                            <label class="form-check-label">Hot shower</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="has_internet" value="yes" {% if filters.has_internet == 'yes' %}checked{% endif %}>
+                            <label class="form-check-label">Internet</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="parking" value="yes" {% if filters.parking == 'yes' %}checked{% endif %}>
+                            <label class="form-check-label">Parking</label>
+                        </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100 mt-3">Search</button>
-                    <a href="{% url 'enyumba:search' %}" class="btn btn-outline-secondary w-100 mt-2">Clear filters</a>
+                    <button type="submit" class="btn btn-primary w-100 mt-3">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                    <a href="{% url 'enyumba:search' %}" class="btn btn-outline-secondary w-100 mt-2">
+                        <i class="bi bi-arrow-repeat"></i> Clear filters
+                    </a>
                 </form>
             </div>
         </div>
@@ -145,7 +219,7 @@
                         <h5 class="card-title">{{ prop.title|truncatechars:35 }}</h5>
 
                         <!-- Price display based on property type -->
-                        {% if prop.property_type == 'lease' %}
+                        {% if prop.property_type == 'lease' or prop.property_type == 'rent' %}
                             <p class="card-text"><strong>KES {{ prop.monthly_rent }}</strong> / month</p>
                         {% elif prop.property_type == 'airbnb' %}
                             <p class="card-text"><strong>KES {{ prop.nightly_rate }}</strong> / night</p>
@@ -220,4 +294,57 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Toggle field visibility based on property type selection
+    const propertyTypeSelect = document.getElementById('propertyTypeSelect');
+    const houseTypeField = document.getElementById('houseTypeField');
+    const capacityRangeField = document.getElementById('capacityRangeField');
+    const compoundFilters = document.getElementById('compoundFilters');
+    const featureFilters = document.getElementById('featureFilters');
+    const airbnbFields = document.getElementById('airbnbFields');
+    const conferenceFields = document.getElementById('conferenceFields');
+    const priceLabel = document.getElementById('priceLabel');
+
+    function updateFormFields() {
+        const selectedType = propertyTypeSelect.value;
+        
+        // Default: hide all type-specific fields
+        houseTypeField.style.display = 'block';
+        capacityRangeField.style.display = 'none';
+        compoundFilters.style.display = 'block';
+        featureFilters.style.display = 'block';
+        airbnbFields.style.display = 'none';
+        conferenceFields.style.display = 'none';
+        
+        if (selectedType === 'airbnb') {
+            // For Airbnb: hide house type, compound, features; show Airbnb fields
+            houseTypeField.style.display = 'none';
+            compoundFilters.style.display = 'none';
+            featureFilters.style.display = 'none';
+            airbnbFields.style.display = 'block';
+            priceLabel.textContent = 'Min price (KES per night)';
+        } 
+        else if (selectedType === 'conference') {
+            // For Conference: hide house type, compound, features; show capacity range
+            houseTypeField.style.display = 'none';
+            compoundFilters.style.display = 'none';
+            featureFilters.style.display = 'none';
+            capacityRangeField.style.display = 'block';
+            conferenceFields.style.display = 'block';
+            priceLabel.textContent = 'Min price (KES per hour)';
+        }
+        else if (selectedType === 'rent' || selectedType === 'lease') {
+            // For rent/lease: show everything, price label monthly
+            priceLabel.textContent = 'Min price (KES per month)';
+        }
+        else {
+            // All types – show common fields
+            priceLabel.textContent = 'Min price (KES)';
+        }
+    }
+    
+    propertyTypeSelect.addEventListener('change', updateFormFields);
+    updateFormFields();
+</script>
 {% endblock %}
