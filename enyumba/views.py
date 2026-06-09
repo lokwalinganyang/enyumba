@@ -9,7 +9,7 @@ from django.core.cache import cache
 from django.db.models import Q
 from django.conf import settings
 from django.urls import reverse
-from .models import Landlord, Property, Report, Advertisement
+from .models import Landlord, Property, Report, Advertisement, Location
 from .forms import LandlordForm, PropertyForm
 
 
@@ -18,6 +18,7 @@ def get_client_ip(request):
     if x_forwarded_for:
         return x_forwarded_for.split(',')[0]
     return request.META.get('REMOTE_ADDR')
+
 
 def debug_info(request):
     User = get_user_model()
@@ -30,6 +31,7 @@ def debug_info(request):
         'database_url_set': bool(os.environ.get('DATABASE_URL')),
     }
     return JsonResponse(data)
+
 
 def home(request):
     """Landing page with four main categories: Rent, Lease, Airbnb, Conference."""
@@ -55,6 +57,37 @@ def home(request):
     return render(request, 'enyumba/home.html', context)
 
 
+def browse_by_location(request):
+    """Browse properties by village/neighbourhood"""
+    villages = Location.objects.filter(location_type='village', is_active=True)
+    
+    location_data = []
+    for village in villages:
+        property_count = Property.objects.filter(
+            is_approved=True, 
+            is_active=True,
+            location_neighbourhood__icontains=village.name
+        ).count()
+        
+        location_data.append({
+            'id': village.id,
+            'name': village.name,
+            'description': village.description,
+            'count': property_count,
+            'has_properties': property_count > 0,
+        })
+    
+    landmarks = Location.objects.filter(location_type='landmark', is_active=True)
+    
+    context = {
+        'villages': location_data,
+        'landmarks': landmarks,
+        'total_villages': len(location_data),
+        'villages_with_properties': sum(1 for v in location_data if v['has_properties']),
+    }
+    return render(request, 'enyumba/browse_locations.html', context)
+
+
 def landlord_start(request):
     if request.method == 'POST':
         form = LandlordForm(request.POST)
@@ -63,7 +96,6 @@ def landlord_start(request):
             name = form.cleaned_data['name']
             alt_phone = form.cleaned_data['alt_phone']
             
-            # Create or get landlord, mark as verified immediately
             landlord, created = Landlord.objects.get_or_create(
                 phone=phone,
                 defaults={'name': name, 'alt_phone': alt_phone, 'is_verified': True}
@@ -72,7 +104,6 @@ def landlord_start(request):
                 landlord.is_verified = True
                 landlord.save()
             
-            # Store landlord ID in session and redirect to add property
             request.session['landlord_id'] = landlord.id
             messages.success(request, "Phone verified! Now list your property.")
             return redirect('enyumba:add_property')
@@ -109,6 +140,7 @@ def add_property(request):
     if not landlord_id:
         return redirect('enyumba:landlord_start')
     landlord = get_object_or_404(Landlord, id=landlord_id)
+    
     if request.method == 'POST':
         form = PropertyForm(request.POST, request.FILES)
         if form.is_valid():
@@ -120,7 +152,14 @@ def add_property(request):
             return redirect('enyumba:property_thanks', prop_id=prop.id)
     else:
         form = PropertyForm()
-    return render(request, 'enyumba/add_property.html', {'form': form, 'landlord': landlord})
+    
+    context = {
+        'form': form,
+        'landlord': landlord,
+        'villages': Location.objects.filter(location_type='village', is_active=True),
+        'landmarks': Location.objects.filter(location_type='landmark', is_active=True),
+    }
+    return render(request, 'enyumba/add_property.html', context)
 
 
 def property_thanks(request, prop_id):
@@ -139,12 +178,21 @@ def ad_click(request, ad_id):
 def search_properties(request):
     properties = Property.objects.filter(is_approved=True, is_active=True).order_by('-created_at')
 
-    # 1. Property type filter (including 'rent')
+    # Property type filter
     property_type = request.GET.get('property_type')
     if property_type in ['rent', 'lease', 'airbnb', 'conference']:
         properties = properties.filter(property_type=property_type)
 
-    # 2. Text search
+    # Location search
+    location_q = request.GET.get('location_q')
+    if location_q:
+        properties = properties.filter(
+            Q(location_neighbourhood__icontains=location_q) |
+            Q(location_landmark__icontains=location_q) |
+            Q(title__icontains=location_q)
+        )
+
+    # Text search
     q = request.GET.get('q')
     if q:
         properties = properties.filter(
@@ -152,17 +200,17 @@ def search_properties(request):
             Q(location_neighbourhood__icontains=q) | Q(location_landmark__icontains=q)
         )
 
-    # 3. House type (only for rent/lease/airbnb)
+    # House type
     house_type = request.GET.get('house_type')
     if house_type:
         properties = properties.filter(property_type__in=['rent', 'lease', 'airbnb'], house_type=house_type)
 
-    # 4. Neighbourhood filter (dropdown)
+    # Neighbourhood filter
     neighbourhood = request.GET.get('neighbourhood')
     if neighbourhood:
         properties = properties.filter(location_neighbourhood=neighbourhood)
 
-    # 5. Compound filter (only for rent/lease)
+    # Compound filters
     compound_only = request.GET.get('compound_only')
     if compound_only == 'yes':
         properties = properties.filter(property_type__in=['rent', 'lease'], is_in_compound=True)
@@ -170,12 +218,12 @@ def search_properties(request):
     if standalone_only == 'yes':
         properties = properties.filter(property_type__in=['rent', 'lease'], is_in_compound=False)
 
-    # 6. Furnished filter (only for rent)
+    # Furnished filter
     is_furnished = request.GET.get('is_furnished')
     if is_furnished == 'yes':
         properties = properties.filter(property_type='rent', is_furnished=True)
 
-    # 7. Price filtering (type‑aware)
+    # Price filtering
     min_price = request.GET.get('min_price')
     max_price = request.GET.get('max_price')
     
@@ -198,7 +246,7 @@ def search_properties(request):
         )
         properties = properties.filter(price_filter)
 
-    # 8. Feature filters (for rent/lease/airbnb)
+    # Feature filters
     has_tiles = request.GET.get('has_tiles')
     if has_tiles == 'yes':
         properties = properties.filter(property_type__in=['rent', 'lease', 'airbnb'], has_tiles=True)
@@ -223,7 +271,7 @@ def search_properties(request):
     if parking == 'yes':
         properties = properties.filter(property_type__in=['rent', 'lease', 'airbnb'], parking_capacity__gt=0)
 
-    # 9. Airbnb specific filters
+    # Airbnb specific filters
     bedrooms = request.GET.get('bedrooms')
     if bedrooms:
         properties = properties.filter(property_type='airbnb', bedrooms__gte=bedrooms)
@@ -248,7 +296,7 @@ def search_properties(request):
     if has_tv == 'yes':
         properties = properties.filter(property_type='airbnb', has_tv=True)
 
-    # 10. Conference specific filters
+    # Conference specific filters
     capacity_range = request.GET.get('capacity_range')
     if capacity_range:
         properties = properties.filter(property_type='conference', capacity_range=capacity_range)
@@ -269,15 +317,18 @@ def search_properties(request):
     if catering_available == 'yes':
         properties = properties.filter(property_type='conference', catering_available=True)
 
-    # 11. Add share URL to each property
+    # Add share URL to each property
     for prop in properties:
         prop.share_url = request.build_absolute_uri(reverse('enyumba:property_detail', args=[prop.id]))
 
-    # Get distinct neighbourhoods for filter dropdown
+    # Get distinct neighbourhoods
     neighbourhoods = Property.objects.filter(
         is_approved=True, is_active=True
     ).values_list('location_neighbourhood', flat=True).distinct()
     neighbourhoods = sorted([n for n in neighbourhoods if n])
+
+    # Popular areas
+    popular_areas = ['Nawoitorong', 'Jobag', 'Galilee', 'Kanamkemer', 'Lodwar Town', 'Kwa Governor', 'Harmony', 'Kambi Mpya']
 
     context = {
         'properties': properties,
@@ -286,6 +337,7 @@ def search_properties(request):
         'property_type_choices': Property.PROPERTY_TYPES,
         'capacity_range_choices': Property.CAPACITY_RANGES,
         'neighbourhoods': neighbourhoods,
+        'popular_areas': popular_areas,
     }
     return render(request, 'enyumba/search.html', context)
 
@@ -307,7 +359,7 @@ def property_detail(request, pk):
         else:
             contact_message = "Daily contact limit reached. Try tomorrow."
 
-    # Price display based on property type
+    # Price display
     if prop.property_type in ['rent', 'lease']:
         price_display = f"KES {prop.monthly_rent}/month"
     elif prop.property_type == 'airbnb':

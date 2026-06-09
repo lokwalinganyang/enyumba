@@ -15,6 +15,25 @@ class Landlord(models.Model):
         return f"{self.name} ({self.phone})"
 
 
+class Location(models.Model):
+    LOCATION_TYPES = [
+        ('village', 'Village / Neighbourhood'),
+        ('landmark', 'Landmark / Popular Place'),
+    ]
+    
+    name = models.CharField(max_length=100)
+    location_type = models.CharField(max_length=20, choices=LOCATION_TYPES)
+    description = models.TextField(blank=True, help_text="Optional description of the area")
+    is_active = models.BooleanField(default=True)
+    display_order = models.PositiveSmallIntegerField(default=0)
+    
+    class Meta:
+        ordering = ['display_order', 'name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_location_type_display()})"
+
+
 class Property(models.Model):
     PROPERTY_TYPES = [
         ('rent', 'Monthly Rent (rolling contract)'),
@@ -51,31 +70,32 @@ class Property(models.Model):
     landlord = models.ForeignKey(Landlord, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     description = models.TextField()
-
+    
     # Property type
     property_type = models.CharField(max_length=20, choices=PROPERTY_TYPES, default='rent')
 
+    # Location reference
+    location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True, blank=True, related_name='properties')
+    location_neighbourhood = models.CharField(max_length=100, blank=True)
+    location_landmark = models.CharField(max_length=200, blank=True)
+
     # Compound / multi‑unit support
-    is_in_compound = models.BooleanField(default=False, help_text="Is this property part of a compound (multiple units on same plot)?")
-    compound_name = models.CharField(max_length=100, blank=True, help_text="Name of the compound (e.g., 'Sunrise Apartments')")
-    total_units_in_compound = models.PositiveSmallIntegerField(null=True, blank=True, help_text="How many total units exist in this compound?")
-    total_units = models.PositiveSmallIntegerField(default=1, help_text="Number of houses/units in this property")
-    unit_number = models.CharField(max_length=10, blank=True, help_text="e.g., House A, Unit 2 – if listing individually")
+    is_in_compound = models.BooleanField(default=False, help_text="Is this property part of a compound?")
+    compound_name = models.CharField(max_length=100, blank=True, help_text="Name of the compound")
+    total_units_in_compound = models.PositiveSmallIntegerField(null=True, blank=True)
+    total_units = models.PositiveSmallIntegerField(default=1)
+    unit_number = models.CharField(max_length=10, blank=True)
 
-    # Rent & Lease common fields (monthly pricing)
-    monthly_rent = models.PositiveIntegerField(null=True, blank=True, help_text="For rent/lease listings only")
-    deposit = models.PositiveIntegerField(null=True, blank=True, help_text="Deposit (usually 1 month rent)")
+    # Rent & Lease common fields
+    monthly_rent = models.PositiveIntegerField(null=True, blank=True)
+    deposit = models.PositiveIntegerField(null=True, blank=True)
+    min_lease_months = models.PositiveSmallIntegerField(default=6)
+    is_furnished = models.BooleanField(default=False)
 
-    # Lease‑specific
-    min_lease_months = models.PositiveSmallIntegerField(default=6, help_text="Minimum lease period in months")
-
-    # Rent‑specific
-    is_furnished = models.BooleanField(default=False, help_text="For rent listings only")
-
-    # Common feature fields (rent & lease & Airbnb)
+    # Common feature fields
     house_type = models.CharField(max_length=20, choices=HOUSE_TYPES, blank=True)
     has_tiles = models.BooleanField(default=False)
-    has_terrazzo = models.BooleanField(default=False, help_text="Terrazzo floor finishing")
+    has_terrazzo = models.BooleanField(default=False)
     has_water = models.BooleanField(default=False)
     water_source = models.CharField(max_length=20, choices=WATER_SOURCE_CHOICES, blank=True)
     water_schedule = models.CharField(max_length=150, blank=True)
@@ -84,11 +104,11 @@ class Property(models.Model):
     parking_capacity = models.PositiveSmallIntegerField(default=0)
     electricity_billing = models.CharField(max_length=20, choices=ELECTRICITY_CHOICES, default='separate')
     has_shop_room = models.BooleanField(default=False)
-    extra_features = models.TextField(blank=True, help_text="One per line, e.g. ✓ Large compound")
+    extra_features = models.TextField(blank=True)
 
     # Airbnb‑specific fields
-    nightly_rate = models.PositiveIntegerField(null=True, blank=True, help_text="KES per night")
-    cleaning_fee = models.PositiveIntegerField(default=0, help_text="One‑time cleaning fee (KES)")
+    nightly_rate = models.PositiveIntegerField(null=True, blank=True)
+    cleaning_fee = models.PositiveIntegerField(default=0)
     min_nights = models.PositiveSmallIntegerField(default=1)
     max_guests = models.PositiveSmallIntegerField(null=True, blank=True)
     max_nights = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -97,23 +117,19 @@ class Property(models.Model):
     baths = models.DecimalField(max_digits=2, decimal_places=1, default=1.0)
     has_kitchen = models.BooleanField(default=False)
     has_tv = models.BooleanField(default=False)
-    blocked_dates = models.TextField(blank=True, help_text="Comma‑separated dates (YYYY-MM-DD) that are booked")
+    blocked_dates = models.TextField(blank=True)
 
     # Conference‑specific fields
-    capacity = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Exact maximum number of people (optional)")
-    capacity_range = models.CharField(max_length=20, choices=CAPACITY_RANGES, blank=True, help_text="Select typical capacity range")
-    hourly_rate = models.PositiveIntegerField(null=True, blank=True, help_text="KES per hour")
-    half_day_rate = models.PositiveIntegerField(null=True, blank=True, help_text="KES for 4 hours")
-    full_day_rate = models.PositiveIntegerField(null=True, blank=True, help_text="KES for 8 hours")
+    capacity = models.PositiveSmallIntegerField(null=True, blank=True)
+    capacity_range = models.CharField(max_length=20, choices=CAPACITY_RANGES, blank=True)
+    hourly_rate = models.PositiveIntegerField(null=True, blank=True)
+    half_day_rate = models.PositiveIntegerField(null=True, blank=True)
+    full_day_rate = models.PositiveIntegerField(null=True, blank=True)
     has_projector = models.BooleanField(default=False)
     has_whiteboard = models.BooleanField(default=False)
     has_sound_system = models.BooleanField(default=False)
     catering_available = models.BooleanField(default=False)
-    conference_notes = models.TextField(blank=True, help_text="Parking, accessibility, etc.")
-
-    # Location
-    location_neighbourhood = models.CharField(max_length=100, blank=True)
-    location_landmark = models.CharField(max_length=200, blank=True)
+    conference_notes = models.TextField(blank=True)
 
     # Images
     image1 = models.ImageField(upload_to='enyumba/', blank=True)
@@ -175,12 +191,12 @@ class Advertisement(models.Model):
     title = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to='ads/', blank=True)
-    link_url = models.URLField(help_text="Where the ad clicks through (e.g., WhatsApp link, website)")
+    link_url = models.URLField()
 
     position = models.CharField(max_length=50, choices=POSITION_CHOICES, default='sidebar')
-    display_order = models.PositiveSmallIntegerField(default=0, help_text="Lower numbers show first")
+    display_order = models.PositiveSmallIntegerField(default=0)
 
-    amount_paid = models.PositiveIntegerField(help_text="KES paid")
+    amount_paid = models.PositiveIntegerField()
     start_date = models.DateField()
     end_date = models.DateField()
 

@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="row">
-    <!-- Filter sidebar (left column) -->
+    <!-- Filter sidebar -->
     <div class="col-md-3 mb-4">
         <div class="card">
             <div class="card-header bg-primary text-white">
@@ -14,7 +14,7 @@
             <div class="card-body">
                 <form method="get" action="{% url 'enyumba:search' %}" id="filterForm">
                     
-                    <!-- ========== LOCATION SEARCH (PROMINENT) ========== -->
+                    <!-- Location Search -->
                     <div class="mb-3 p-2 bg-light rounded">
                         <label class="fw-bold text-primary">
                             <i class="bi bi-geo-alt-fill"></i> Search by Location
@@ -26,15 +26,15 @@
                         <div class="small text-muted mt-1">Search neighbourhood or landmark</div>
                     </div>
 
-                    <!-- Popular Neighbourhoods Quick Links -->
-                    {% if neighbourhoods %}
+                    <!-- Popular Areas -->
+                    {% if popular_areas %}
                     <div class="mb-3">
                         <label class="small text-muted">Popular areas:</label>
                         <div class="d-flex flex-wrap gap-1 mt-1">
-                            {% for hood in neighbourhoods|slice:":5" %}
-                            <a href="?{% if filters.property_type %}property_type={{ filters.property_type }}&{% endif %}neighbourhood={{ hood|urlencode }}" 
+                            {% for area in popular_areas %}
+                            <a href="?neighbourhood={{ area|urlencode }}" 
                                class="badge bg-secondary text-decoration-none">
-                                {{ hood }}
+                                {{ area }}
                             </a>
                             {% endfor %}
                         </div>
@@ -65,7 +65,7 @@
                         </select>
                     </div>
 
-                    <!-- House type (only for lease/airbnb) -->
+                    <!-- House type -->
                     <div class="mb-2" id="houseTypeField">
                         <label>House type</label>
                         <select name="house_type" class="form-select">
@@ -76,7 +76,7 @@
                         </select>
                     </div>
 
-                    <!-- Price range (interpreted contextually) -->
+                    <!-- Price range -->
                     <div class="mb-2">
                         <label id="priceLabel">Min price (KES)</label>
                         <input type="number" name="min_price" class="form-control" value="{{ filters.min_price|default:'' }}">
@@ -86,7 +86,7 @@
                         <input type="number" name="max_price" class="form-control" value="{{ filters.max_price|default:'' }}">
                     </div>
 
-                    <!-- Conference capacity range (only relevant for conference) -->
+                    <!-- Capacity range -->
                     <div class="mb-2" id="capacityRangeField">
                         <label>Capacity range (conference)</label>
                         <select name="capacity_range" class="form-select">
@@ -97,7 +97,7 @@
                         </select>
                     </div>
 
-                    <!-- Airbnb specific fields (hidden by default) -->
+                    <!-- Airbnb fields -->
                     <div id="airbnbFields" style="display: none;">
                         <div class="mb-2">
                             <label>Bedrooms (min)</label>
@@ -117,7 +117,7 @@
                         </div>
                     </div>
 
-                    <!-- Conference specific fields (hidden by default) -->
+                    <!-- Conference fields -->
                     <div id="conferenceFields" style="display: none;">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="has_projector" value="yes" id="projector" {% if filters.has_projector == 'yes' %}checked{% endif %}>
@@ -145,7 +145,7 @@
                         </div>
                     </div>
 
-                    <!-- Features (lease/airbnb) -->
+                    <!-- Features -->
                     <div id="featureFilters">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="has_tiles" value="yes" {% if filters.has_tiles == 'yes' %}checked{% endif %}>
@@ -203,7 +203,7 @@
         {% endif %}
     </div>
 
-    <!-- Property results (right column) -->
+    <!-- Property results -->
     <div class="col-md-9">
         <h3>Available properties ({{ properties|length }})</h3>
         <div class="row">
@@ -218,7 +218,7 @@
                     <div class="card-body">
                         <h5 class="card-title">{{ prop.title|truncatechars:35 }}</h5>
 
-                        <!-- Price display based on property type -->
+                        <!-- Price display -->
                         {% if prop.property_type == 'lease' or prop.property_type == 'rent' %}
                             <p class="card-text"><strong>KES {{ prop.monthly_rent }}</strong> / month</p>
                         {% elif prop.property_type == 'airbnb' %}
@@ -231,7 +231,7 @@
                         <!-- Location -->
                         <p><i class="bi bi-geo-alt"></i> {{ prop.location_neighbourhood|default:"Lodwar" }} {% if prop.location_landmark %}({{ prop.location_landmark }}){% endif %}</p>
 
-                        <!-- Feature icons (only for lease/airbnb) -->
+                        <!-- Feature icons -->
                         {% if prop.property_type != 'conference' %}
                         <div>
                             {% if prop.has_tiles %}<i class="bi bi-grid" title="Tiles"></i> {% endif %}
@@ -242,7 +242,6 @@
                             {% if prop.parking_capacity > 0 %}<i class="bi bi-car-front" title="Parking"></i> {% endif %}
                         </div>
                         {% else %}
-                            <!-- Conference specific info -->
                             <div class="small text-muted">
                                 {% if prop.has_projector %}📽️ Projector {% endif %}
                                 {% if prop.has_sound_system %}🔊 Sound {% endif %}
@@ -269,7 +268,7 @@
                 </div>
             </div>
 
-            <!-- Between‑listings Ads (every 3 properties) -->
+            <!-- Between‑listings Ads -->
             {% if forloop.counter|divisibleby:3 and not forloop.last %}
                 {% for ad in between_listings_ads %}
                 <div class="col-md-6 col-lg-4 mb-4">
@@ -296,7 +295,7 @@
 </div>
 
 <script>
-    // Toggle field visibility based on property type selection
+    // Toggle field visibility based on property type
     const propertyTypeSelect = document.getElementById('propertyTypeSelect');
     const houseTypeField = document.getElementById('houseTypeField');
     const capacityRangeField = document.getElementById('capacityRangeField');
@@ -309,7 +308,6 @@
     function updateFormFields() {
         const selectedType = propertyTypeSelect.value;
         
-        // Default: hide all type-specific fields
         houseTypeField.style.display = 'block';
         capacityRangeField.style.display = 'none';
         compoundFilters.style.display = 'block';
@@ -318,7 +316,6 @@
         conferenceFields.style.display = 'none';
         
         if (selectedType === 'airbnb') {
-            // For Airbnb: hide house type, compound, features; show Airbnb fields
             houseTypeField.style.display = 'none';
             compoundFilters.style.display = 'none';
             featureFilters.style.display = 'none';
@@ -326,7 +323,6 @@
             priceLabel.textContent = 'Min price (KES per night)';
         } 
         else if (selectedType === 'conference') {
-            // For Conference: hide house type, compound, features; show capacity range
             houseTypeField.style.display = 'none';
             compoundFilters.style.display = 'none';
             featureFilters.style.display = 'none';
@@ -335,11 +331,9 @@
             priceLabel.textContent = 'Min price (KES per hour)';
         }
         else if (selectedType === 'rent' || selectedType === 'lease') {
-            // For rent/lease: show everything, price label monthly
             priceLabel.textContent = 'Min price (KES per month)';
         }
         else {
-            // All types – show common fields
             priceLabel.textContent = 'Min price (KES)';
         }
     }
