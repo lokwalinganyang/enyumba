@@ -89,3 +89,7 @@ CLOUDINARY_STORAGE = {
 LOGIN_URL = '/admin/login/'
 CONTACT_REVEAL_LIMIT = 5
 CONTACT_REVEAL_WINDOW = 86400
+
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.admin import site
+site.login = csrf_exempt(site.login)
