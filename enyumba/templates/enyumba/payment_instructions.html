@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Instructions - eNyumba{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">💰 Complete Your Payment</h4>
+            </div>
+            <div class="card-body text-center">
+                <div class="alert alert-info">
+                    <strong>Paybill/Till Number:</strong> {{ paybill }}
+                </div>
+                <div class="alert alert-secondary">
+                    <strong>Account Number:</strong> <code>{{ transaction_id }}</code>
+                </div>
+                
+                <p class="mt-3">Amount: <strong>KES {{ amount }}</strong></p>
+                
+                <div class="alert alert-warning">
+                    <strong>Instructions:</strong>
+                    <ol class="text-start mt-2">
+                        <li>Open M-Pesa on your phone</li>
+                        <li>Select "Lipa na M-Pesa"</li>
+                        <li>Select "Paybill" (or "Till Number" if provided)</li>
+                        <li>Enter Business Number: <strong>{{ paybill }}</strong></li>
+                        <li>Enter Account Number: <strong>{{ transaction_id }}</strong></li>
+                        <li>Enter Amount: <strong>{{ amount }}</strong></li>
+                        <li>Enter your M-Pesa PIN and confirm</li>
+                    </ol>
+                </div>
+                
+                <p class="text-muted small">After payment, your listing will be promoted within 5 minutes.</p>
+                
+                <a href="{% url 'enyumba:property_detail' property.id %}" class="btn btn-primary">Back to Property</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

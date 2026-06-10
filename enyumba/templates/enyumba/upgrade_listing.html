@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Promote Your Listing - eNyumba{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">🚀 Promote Your Property: {{ property.title }}</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Choose a package to boost your listing to the top of search results.</p>
+                
+                <div class="alert alert-info">
+                    <strong>💡 How it works:</strong> When you pay, your listing moves to the top. More payment = higher position.
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mt-4">
+                        <!-- Free -->
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100 text-center 
+                                {% if current_tier == 'free' %}border-primary bg-light{% endif %}">
+                                <div class="card-body">
+                                    <h5 class="card-title">Free</h5>
+                                    <p class="display-6">KES 0</p>
+                                    <ul class="text-start small">
+                                        <li>✓ Basic listing</li>
+                                        <li>✓ Bottom of search</li>
+                                        <li>✗ No badge</li>
+                                        <li>✗ No priority</li>
+                                    </ul>
+                                    {% if current_tier == 'free' %}
+                                        <span class="badge bg-success">Current Plan</span>
+                                    {% else %}
+                                        <button type="submit" name="tier" value="free" class="btn btn-outline-secondary">Downgrade to Free</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Standard -->
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100 text-center border-secondary
+                                {% if current_tier == 'standard' %}border-primary bg-light{% endif %}">
+                                <div class="card-body">
+                                    <h5 class="card-title">Standard</h5>
+                                    <p class="display-6">KES 100</p>
+                                    <p class="small text-muted">per month</p>
+                                    <ul class="text-start small">
+                                        <li>✓ Middle of search</li>
+                                        <li>✓ "Standard" badge</li>
+                                        <li>✓ Light highlight</li>
+                                    </ul>
+                                    {% if current_tier == 'standard' %}
+                                        <span class="badge bg-success">Current Plan</span>
+                                    {% else %}
+                                        <button type="submit" name="tier" value="standard" class="btn btn-secondary">Upgrade to Standard</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Featured -->
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100 text-center border-info
+                                {% if current_tier == 'featured' %}border-primary bg-light{% endif %}">
+                                <div class="card-body">
+                                    <h5 class="card-title text-info">Featured</h5>
+                                    <p class="display-6">KES 300</p>
+                                    <p class="small text-muted">per month</p>
+                                    <ul class="text-start small">
+                                        <li>✓ Top of search</li>
+                                        <li>✓ "Featured" badge</li>
+                                        <li>✓ Gold border</li>
+                                        <li>✓ Priority over standard</li>
+                                    </ul>
+                                    {% if current_tier == 'featured' %}
+                                        <span class="badge bg-success">Current Plan</span>
+                                    {% else %}
+                                        <button type="submit" name="tier" value="featured" class="btn btn-info">Upgrade to Featured</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Premium -->
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100 text-center border-warning
+                                {% if current_tier == 'premium' %}border-primary bg-light{% endif %}">
+                                <div class="card-body">
+                                    <h5 class="card-title text-warning">Premium</h5>
+                                    <p class="display-6">KES 500</p>
+                                    <p class="small text-muted">per month</p>
+                                    <ul class="text-start small">
+                                        <li>✓ Top + sticky (7 days)</li>
+                                        <li>✓ "Premium" badge</li>
+                                        <li>✓ Gold background</li>
+                                        <li>✓ Priority support</li>
+                                        <li>✓ Shows total paid</li>
+                                    </ul>
+                                    {% if current_tier == 'premium' %}
+                                        <span class="badge bg-success">Current Plan</span>
+                                    {% else %}
+                                        <button type="submit" name="tier" value="premium" class="btn btn-warning">Upgrade to Premium</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if property.total_paid > 0 %}
+        <div class="alert alert-success">
+            <strong>💰 Total paid for this listing:</strong> KES {{ property.total_paid }}
+        </div>
+        {% endif %}
+        
+        <div class="card mt-3">
+            <div class="card-header bg-secondary text-white">
+                📱 How to Pay
+            </div>
+            <div class="card-body">
+                <p>After selecting a package, you'll receive payment instructions via M-Pesa. Payment is required to activate the promotion.</p>
+                <ol>
+                    <li>Select your package</li>
+                    <li>Complete M-Pesa payment using the provided Paybill/Till number</li>
+                    <li>Your listing will be promoted immediately after confirmation</li>
+                    <li>Promotion lasts for 30 days, then renews automatically (you'll be notified before expiry)</li>
+                </ol>
+                <div class="alert alert-warning">
+                    <strong>Note:</strong> For testing, payments are simulated. In production, real M-Pesa integration will be available.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

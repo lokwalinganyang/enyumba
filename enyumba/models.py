@@ -33,7 +33,23 @@ class Location(models.Model):
     def __str__(self):
         return f"{self.name} ({self.get_location_type_display()})"
 
-
+class Property(models.Model):
+    # ... existing fields ...
+    
+    # Priority / Payment fields
+    LISTING_TIERS = [
+        ('free', 'Free (bottom)'),
+        ('standard', 'Standard - KES 100/month'),
+        ('featured', 'Featured - KES 300/month'),
+        ('premium', 'Premium - KES 500/month'),
+    ]
+    
+    listing_tier = models.CharField(max_length=20, choices=LISTING_TIERS, default='free')
+    tier_expiry = models.DateTimeField(null=True, blank=True, help_text="When the paid tier expires")
+    payment_reference = models.CharField(max_length=100, blank=True, help_text="M-Pesa transaction ID")
+    payment_confirmed = models.BooleanField(default=False)
+    promotion_start = models.DateTimeField(null=True, blank=True)
+    total_paid = models.PositiveIntegerField(default=0, help_text="Total amount paid by landlord (KES)")
 class Property(models.Model):
     PROPERTY_TYPES = [
         ('rent', 'Monthly Rent (rolling contract)'),

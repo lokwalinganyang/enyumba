@@ -1,14 +1,16 @@
 import os
 import random
+from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.db import connections
+from django.db.models import Q, Case, When, Value, IntegerField
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.core.cache import cache
-from django.db.models import Q
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
 from .models import Landlord, Property, Report, Advertisement, Location
 from .forms import LandlordForm, PropertyForm
 
@@ -175,8 +177,107 @@ def ad_click(request, ad_id):
     return redirect(ad.link_url)
 
 
+def upgrade_listing(request, property_id):
+    """Allow landlord to upgrade their listing to a paid tier"""
+    prop = get_object_or_404(Property, id=property_id)
+    
+    # Verify landlord owns this property
+    landlord_id = request.session.get('landlord_id')
+    if not landlord_id or prop.landlord.id != landlord_id:
+        messages.error(request, "You don't have permission to upgrade this listing.")
+        return redirect('enyumba:property_detail', pk=property_id)
+    
+    if request.method == 'POST':
+        tier = request.POST.get('tier')
+        
+        # Prices mapping
+        prices = {
+            'standard': 100,
+            'featured': 300,
+            'premium': 500,
+        }
+        
+        amount = prices.get(tier, 0)
+        
+        if tier == 'free':
+            # Downgrade to free
+            prop.listing_tier = 'free'
+            prop.tier_expiry = None
+            prop.save()
+            messages.success(request, "Your listing has been downgraded to Free.")
+            return redirect('enyumba:property_detail', pk=property_id)
+        
+        # Generate unique transaction ID
+        import uuid
+        transaction_id = f"eNYUMBA-{prop.id}-{uuid.uuid4().hex[:8].upper()}"
+        
+        # Store payment intent in session
+        request.session['pending_payment'] = {
+            'property_id': prop.id,
+            'tier': tier,
+            'amount': amount,
+            'transaction_id': transaction_id,
+        }
+        
+        # For demo: auto-confirm payment (in production, integrate M-Pesa)
+        # Remove this in production and use real M-Pesa callback
+        if settings.DEBUG:
+            return confirm_payment(request)
+        
+        return render(request, 'enyumba/payment_instructions.html', {
+            'property': prop,
+            'tier': tier,
+            'amount': amount,
+            'transaction_id': transaction_id,
+            'paybill': 'eNyumba Paybill: 123456',
+            'account_no': transaction_id,
+        })
+    
+    context = {
+        'property': prop,
+        'current_tier': prop.listing_tier,
+        'prices': {
+            'standard': 100,
+            'featured': 300,
+            'premium': 500,
+        },
+    }
+    return render(request, 'enyumba/upgrade_listing.html', context)
+
+
+def confirm_payment(request):
+    """Confirm payment and upgrade the listing"""
+    payment_data = request.session.get('pending_payment')
+    if not payment_data:
+        messages.error(request, "No pending payment found.")
+        return redirect('enyumba:search')
+    
+    prop = Property.objects.get(id=payment_data['property_id'])
+    
+    # Update property with paid tier
+    prop.listing_tier = payment_data['tier']
+    prop.tier_expiry = timezone.now() + timedelta(days=30)
+    prop.payment_reference = payment_data['transaction_id']
+    prop.payment_confirmed = True
+    prop.promotion_start = timezone.now()
+    prop.total_paid = (prop.total_paid or 0) + payment_data['amount']
+    prop.save()
+    
+    # Clear session
+    del request.session['pending_payment']
+    
+    messages.success(request, f"Payment confirmed! Your listing is now {prop.listing_tier.upper()} for 30 days.")
+    return redirect('enyumba:property_detail', pk=prop.id)
+
+
 def search_properties(request):
-    properties = Property.objects.filter(is_approved=True, is_active=True).order_by('-created_at')
+    properties = Property.objects.filter(is_approved=True, is_active=True)
+
+    # Expire any paid listings that have passed their expiry date
+    for prop in properties.filter(listing_tier__in=['standard', 'featured', 'premium']):
+        if prop.tier_expiry and prop.tier_expiry < timezone.now():
+            prop.listing_tier = 'free'
+            prop.save()
 
     # Property type filter
     property_type = request.GET.get('property_type')
@@ -317,6 +418,19 @@ def search_properties(request):
     if catering_available == 'yes':
         properties = properties.filter(property_type='conference', catering_available=True)
 
+    # Sort by priority tier (premium first, then featured, then standard, then free)
+    tier_order = Case(
+        When(listing_tier='premium', then=Value(1)),
+        When(listing_tier='featured', then=Value(2)),
+        When(listing_tier='standard', then=Value(3)),
+        default=Value(4),
+        output_field=IntegerField(),
+    )
+    
+    properties = properties.annotate(
+        tier_priority=tier_order
+    ).order_by('tier_priority', '-created_at')
+
     # Add share URL to each property
     for prop in properties:
         prop.share_url = request.build_absolute_uri(reverse('enyumba:property_detail', args=[prop.id]))
@@ -377,6 +491,7 @@ def property_detail(request, pk):
         'landlord_alt_phone': prop.landlord.alt_phone if show_contact else None,
         'reveal_count': reveal_count,
         'reveal_limit': settings.CONTACT_REVEAL_LIMIT,
+        'landlord_id': prop.landlord.id,  # Add landlord_id for upgrade button check
     }
     return render(request, 'enyumba/detail.html', context)
 

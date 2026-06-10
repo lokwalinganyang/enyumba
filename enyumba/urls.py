@@ -23,4 +23,6 @@ urlpatterns = [
     
     # Debug route (optional - remove in production)
     path('debug/', views.debug_info, name='debug_info'),
+    path('property/<int:property_id>/upgrade/', views.upgrade_listing, name='upgrade_listing'),
+path('payment/confirm/', views.confirm_payment, name='confirm_payment'),
 ]
