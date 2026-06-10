@@ -33,23 +33,7 @@ class Location(models.Model):
     def __str__(self):
         return f"{self.name} ({self.get_location_type_display()})"
 
-class Property(models.Model):
-    # ... existing fields ...
-    
-    # Priority / Payment fields
-    LISTING_TIERS = [
-        ('free', 'Free (bottom)'),
-        ('standard', 'Standard - KES 100/month'),
-        ('featured', 'Featured - KES 300/month'),
-        ('premium', 'Premium - KES 500/month'),
-    ]
-    
-    listing_tier = models.CharField(max_length=20, choices=LISTING_TIERS, default='free')
-    tier_expiry = models.DateTimeField(null=True, blank=True, help_text="When the paid tier expires")
-    payment_reference = models.CharField(max_length=100, blank=True, help_text="M-Pesa transaction ID")
-    payment_confirmed = models.BooleanField(default=False)
-    promotion_start = models.DateTimeField(null=True, blank=True)
-    total_paid = models.PositiveIntegerField(default=0, help_text="Total amount paid by landlord (KES)")
+
 class Property(models.Model):
     PROPERTY_TYPES = [
         ('rent', 'Monthly Rent (rolling contract)'),
@@ -81,6 +65,14 @@ class Property(models.Model):
         ('30_50', '30 - 50 people'),
         ('50_100', '50 - 100 people'),
         ('100_plus', '100+ people'),
+    ]
+    
+    # Priority / Payment fields
+    LISTING_TIERS = [
+        ('free', 'Free (bottom)'),
+        ('standard', 'Standard - KES 100/month'),
+        ('featured', 'Featured - KES 300/month'),
+        ('premium', 'Premium - KES 500/month'),
     ]
 
     landlord = models.ForeignKey(Landlord, on_delete=models.CASCADE)
@@ -161,6 +153,14 @@ class Property(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # Priority listing fields
+    listing_tier = models.CharField(max_length=20, choices=LISTING_TIERS, default='free')
+    tier_expiry = models.DateTimeField(null=True, blank=True, help_text="When the paid tier expires")
+    payment_reference = models.CharField(max_length=100, blank=True, help_text="M-Pesa transaction ID")
+    payment_confirmed = models.BooleanField(default=False)
+    promotion_start = models.DateTimeField(null=True, blank=True)
+    total_paid = models.PositiveIntegerField(default=0, help_text="Total amount paid by landlord (KES)")
 
     def __str__(self):
         if self.property_type == 'rent':
@@ -171,7 +171,7 @@ class Property(models.Model):
             return f"{self.title} - KES {self.nightly_rate}/night (Airbnb)"
         else:
             range_display = self.get_capacity_range_display()
-            return f"{self.title} - Conference ({range_display or f'cap {self.capacity}'})"
+            return f"{self.title} - Conference ({range_display or f'cap {self.capacity} '})"
 
 
 class Advertiser(models.Model):
