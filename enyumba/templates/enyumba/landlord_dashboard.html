@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Landlord Dashboard - eNyumba{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Sidebar -->
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-person-circle"></i> {{ landlord.name }}</h5>
+            </div>
+            <div class="card-body">
+                <p><i class="bi bi-telephone"></i> {{ landlord.phone }}</p>
+                <p><i class="bi bi-calendar"></i> Member since: {{ landlord.created_at|date:"M Y" }}</p>
+                <hr>
+                <a href="{% url 'enyumba:add_property' %}" class="btn btn-success w-100 mb-2">
+                    <i class="bi bi-plus-circle"></i> Add New Property
+                </a>
+                <a href="{% url 'enyumba:search' %}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-search"></i> Browse Properties
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="col-md-9">
+        <h2 class="mb-4">My Properties</h2>
+        
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center bg-info text-white">
+                    <div class="card-body">
+                        <h3>{{ total_properties }}</h3>
+                        <p>Total Properties</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-success text-white">
+                    <div class="card-body">
+                        <h3>{{ approved_properties }}</h3>
+                        <p>Approved</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-warning text-dark">
+                    <div class="card-body">
+                        <h3>{{ pending_properties }}</h3>
+                        <p>Pending Approval</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-secondary text-white">
+                    <div class="card-body">
+                        <h3>{{ active_properties }}</h3>
+                        <p>Active</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Properties Table -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-list"></i> My Listings
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Tier</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prop in properties %}
+                            <tr>
+                                <td>
+                                    <strong>{{ prop.title|truncatechars:30 }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ prop.location_neighbourhood }}</small>
+                                </td>
+                                <td>{{ prop.get_property_type_display|truncatechars:15 }}</td>
+                                <td>
+                                    {% if prop.property_type == 'rent' or prop.property_type == 'lease' %}
+                                        KES {{ prop.monthly_rent }}/month
+                                    {% elif prop.property_type == 'airbnb' %}
+                                        KES {{ prop.nightly_rate }}/night
+                                    {% else %}
+                                        KES {{ prop.hourly_rate }}/hour
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if prop.is_approved %}
+                                        {% if prop.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if prop.listing_tier == 'premium' %}
+                                        <span class="badge bg-warning text-dark">⭐ Premium</span>
+                                    {% elif prop.listing_tier == 'featured' %}
+                                        <span class="badge bg-info">🔥 Featured</span>
+                                    {% elif prop.listing_tier == 'standard' %}
+                                        <span class="badge bg-secondary">📌 Standard</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">Free</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'enyumba:property_detail' prop.id %}" 
+                                           class="btn btn-outline-primary" title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{% url 'enyumba:landlord_edit_property' prop.id %}" 
+                                           class="btn btn-outline-secondary" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{% url 'enyumba:landlord_toggle_active' prop.id %}" 
+                                           class="btn btn-outline-warning" title="{% if prop.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                            <i class="bi {% if prop.is_active %}bi-pause-circle{% else %}bi-play-circle{% endif %}"></i>
+                                        </a>
+                                        <a href="{% url 'enyumba:landlord_delete_property' prop.id %}" 
+                                           class="btn btn-outline-danger" title="Delete"
+                                           onclick="return confirm('Are you sure you want to delete this property?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <i class="bi bi-house-x" style="font-size: 3rem;"></i>
+                                    <p class="mt-2">You haven't added any properties yet.</p>
+                                    <a href="{% url 'enyumba:add_property' %}" class="btn btn-primary">
+                                        Add Your First Property
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

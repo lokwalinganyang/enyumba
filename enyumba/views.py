@@ -528,3 +528,88 @@ def report_property(request, pk):
         messages.success(request, "Thank you for reporting.")
         return redirect('enyumba:property_detail', pk=pk)
     return redirect('enyumba:property_detail', pk=pk)
+def landlord_dashboard(request):
+    """Landlord dashboard - view and manage properties"""
+    landlord_id = request.session.get('landlord_id')
+    if not landlord_id:
+        messages.warning(request, "Please register as a landlord first.")
+        return redirect('enyumba:landlord_start')
+    
+    landlord = get_object_or_404(Landlord, id=landlord_id)
+    properties = Property.objects.filter(landlord=landlord).order_by('-created_at')
+    
+    # Calculate statistics
+    total_properties = properties.count()
+    approved_properties = properties.filter(is_approved=True).count()
+    pending_properties = properties.filter(is_approved=False).count()
+    active_properties = properties.filter(is_active=True).count()
+    
+    # Calculate total views
+    total_views = sum(getattr(prop, 'view_count', 0) for prop in properties)
+    
+    context = {
+        'landlord': landlord,
+        'properties': properties,
+        'total_properties': total_properties,
+        'approved_properties': approved_properties,
+        'pending_properties': pending_properties,
+        'active_properties': active_properties,
+        'total_views': total_views,
+    }
+    return render(request, 'enyumba/landlord_dashboard.html', context)
+
+
+def landlord_edit_property(request, property_id):
+    """Landlord edit their property"""
+    landlord_id = request.session.get('landlord_id')
+    if not landlord_id:
+        return redirect('enyumba:landlord_start')
+    
+    prop = get_object_or_404(Property, id=property_id, landlord_id=landlord_id)
+    
+    if request.method == 'POST':
+        form = PropertyForm(request.POST, request.FILES, instance=prop)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Property updated successfully!")
+            return redirect('enyumba:landlord_dashboard')
+    else:
+        form = PropertyForm(instance=prop)
+    
+    context = {
+        'form': form,
+        'property': prop,
+    }
+    return render(request, 'enyumba/landlord_edit_property.html', context)
+
+
+def landlord_toggle_active(request, property_id):
+    """Activate or deactivate a property"""
+    landlord_id = request.session.get('landlord_id')
+    if not landlord_id:
+        return redirect('enyumba:landlord_start')
+    
+    prop = get_object_or_404(Property, id=property_id, landlord_id=landlord_id)
+    prop.is_active = not prop.is_active
+    prop.save()
+    
+    status = "activated" if prop.is_active else "deactivated"
+    messages.success(request, f"Property {status} successfully!")
+    return redirect('enyumba:landlord_dashboard')
+
+
+def landlord_delete_property(request, property_id):
+    """Delete a property"""
+    landlord_id = request.session.get('landlord_id')
+    if not landlord_id:
+        return redirect('enyumba:landlord_start')
+    
+    prop = get_object_or_404(Property, id=property_id, landlord_id=landlord_id)
+    
+    if request.method == 'POST':
+        prop.delete()
+        messages.success(request, "Property deleted successfully!")
+        return redirect('enyumba:landlord_dashboard')
+    
+    context = {'property': prop}
+    return render(request, 'enyumba/landlord_confirm_delete.html', context)

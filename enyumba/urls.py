@@ -25,4 +25,9 @@ urlpatterns = [
     path('debug/', views.debug_info, name='debug_info'),
     path('property/<int:property_id>/upgrade/', views.upgrade_listing, name='upgrade_listing'),
 path('payment/confirm/', views.confirm_payment, name='confirm_payment'),
+# Landlord Dashboard URLs
+path('dashboard/', views.landlord_dashboard, name='landlord_dashboard'),
+path('dashboard/property/<int:property_id>/edit/', views.landlord_edit_property, name='landlord_edit_property'),
+path('dashboard/property/<int:property_id>/toggle/', views.landlord_toggle_active, name='landlord_toggle_active'),
+path('dashboard/property/<int:property_id>/delete/', views.landlord_delete_property, name='landlord_delete_property'),
 ]

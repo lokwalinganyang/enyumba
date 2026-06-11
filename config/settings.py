@@ -96,3 +96,11 @@ CLOUDINARY_STORAGE = {
 LOGIN_URL = '/admin/login/'
 CONTACT_REVEAL_LIMIT = 5
 CONTACT_REVEAL_WINDOW = 86400
+# Email Configuration (for notifications)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # Or your email provider
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@enyumba.com')
