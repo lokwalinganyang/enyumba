@@ -67,7 +67,6 @@ class Property(models.Model):
         ('100_plus', '100+ people'),
     ]
     
-    # Priority / Payment fields
     LISTING_TIERS = [
         ('free', 'Free (bottom)'),
         ('standard', 'Standard - KES 100/month'),
@@ -75,7 +74,7 @@ class Property(models.Model):
         ('premium', 'Premium - KES 500/month'),
     ]
 
-    landlord = models.ForeignKey(Landlord, on_delete=models.CASCADE)
+    landlord = models.ForeignKey(Landlord, on_delete=models.CASCADE, related_name='properties')
     title = models.CharField(max_length=200)
     description = models.TextField()
     
@@ -147,7 +146,7 @@ class Property(models.Model):
 
     # Admin & status
     is_approved = models.BooleanField(default=False)
-    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_properties')
     approved_at = models.DateTimeField(null=True, blank=True)
     flag_count = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -171,7 +170,36 @@ class Property(models.Model):
             return f"{self.title} - KES {self.nightly_rate}/night (Airbnb)"
         else:
             range_display = self.get_capacity_range_display()
-            return f"{self.title} - Conference ({range_display or f'cap {self.capacity} '})"
+            return f"{self.title} - Conference ({range_display or f'cap {self.capacity}'})"
+
+
+class Payment(models.Model):
+    PAYMENT_STATUS = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded'),
+    ]
+    
+    PAYMENT_TIERS = [
+        ('standard', 'Standard - KES 100'),
+        ('featured', 'Featured - KES 300'),
+        ('premium', 'Premium - KES 500'),
+    ]
+    
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='payments')
+    landlord = models.ForeignKey(Landlord, on_delete=models.CASCADE, related_name='payments')
+    tier = models.CharField(max_length=20, choices=PAYMENT_TIERS)
+    amount = models.PositiveIntegerField()
+    transaction_id = models.CharField(max_length=100, unique=True)
+    mpesa_receipt = models.CharField(max_length=50, blank=True)
+    phone_number = models.CharField(max_length=15)
+    status = models.CharField(max_length=20, choices=PAYMENT_STATUS, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.property.title} - {self.tier} - {self.status}"
 
 
 class Advertiser(models.Model):
@@ -203,7 +231,7 @@ class Advertisement(models.Model):
         ('rejected', 'Rejected'),
     ]
 
-    advertiser = models.ForeignKey(Advertiser, on_delete=models.CASCADE)
+    advertiser = models.ForeignKey(Advertiser, on_delete=models.CASCADE, related_name='advertisements')
     title = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to='ads/', blank=True)
@@ -227,7 +255,7 @@ class Advertisement(models.Model):
 
 
 class Report(models.Model):
-    property = models.ForeignKey(Property, on_delete=models.CASCADE)
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='reports')
     reporter_ip = models.GenericIPAddressField()
     reason = models.TextField()
     status = models.CharField(max_length=20, choices=[
