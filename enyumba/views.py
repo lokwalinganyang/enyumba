@@ -13,6 +13,12 @@ from django.urls import reverse
 from django.utils import timezone
 from .models import Landlord, Property, Report, Advertisement, Location
 from .forms import LandlordForm, PropertyForm
+from .notifications import (
+    notify_new_property, 
+    notify_new_report, 
+    notify_upgrade_request,
+    notify_payment_confirmed
+)
 
 
 def get_client_ip(request):
@@ -149,6 +155,10 @@ def add_property(request):
             prop = form.save(commit=False)
             prop.landlord = landlord
             prop.save()
+            
+            # Send notification to admin
+            notify_new_property(prop)
+            
             messages.success(request, "Property submitted! It will appear after admin approval.")
             del request.session['landlord_id']
             return redirect('enyumba:property_thanks', prop_id=prop.id)
@@ -207,6 +217,9 @@ def upgrade_listing(request, property_id):
             messages.success(request, "Your listing has been downgraded to Free.")
             return redirect('enyumba:property_detail', pk=property_id)
         
+        # Send upgrade request notification to admin
+        notify_upgrade_request(prop, tier)
+        
         # Generate unique transaction ID
         import uuid
         transaction_id = f"eNYUMBA-{prop.id}-{uuid.uuid4().hex[:8].upper()}"
@@ -262,6 +275,10 @@ def confirm_payment(request):
     prop.promotion_start = timezone.now()
     prop.total_paid = (prop.total_paid or 0) + payment_data['amount']
     prop.save()
+    
+    # Send payment confirmation notification
+    # Create a payment record first (you'll need to implement Payment model)
+    # notify_payment_confirmed(payment_record)
     
     # Clear session
     del request.session['pending_payment']
@@ -491,7 +508,7 @@ def property_detail(request, pk):
         'landlord_alt_phone': prop.landlord.alt_phone if show_contact else None,
         'reveal_count': reveal_count,
         'reveal_limit': settings.CONTACT_REVEAL_LIMIT,
-        'landlord_id': prop.landlord.id,  # Add landlord_id for upgrade button check
+        'landlord_id': prop.landlord.id,
     }
     return render(request, 'enyumba/detail.html', context)
 
@@ -501,9 +518,13 @@ def report_property(request, pk):
         prop = get_object_or_404(Property, pk=pk)
         reason = request.POST.get('reason')
         ip = get_client_ip(request)
-        Report.objects.create(property=prop, reporter_ip=ip, reason=reason)
+        report = Report.objects.create(property=prop, reporter_ip=ip, reason=reason)
         prop.flag_count += 1
         prop.save()
+        
+        # Send notification to admin
+        notify_new_report(report)
+        
         messages.success(request, "Thank you for reporting.")
         return redirect('enyumba:property_detail', pk=pk)
     return redirect('enyumba:property_detail', pk=pk)
